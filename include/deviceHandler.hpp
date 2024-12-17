@@ -57,16 +57,20 @@ DeviceHandler::DeviceHandler()
 
   //Get number of compute units for each device
   for(cl_uint I=0; I<num_platforms; I++){//Go over all platforms
-    cl_uint NumComputeUnits;
-    cl_device_id DevID;
-    ciErrNum = clGetDeviceIDs(clPlatformIDs[I], CL_DEVICE_TYPE_GPU, uiNumDevices, DevID, NULL);
-    ciErrNum = clGetDeviceInfo(DevID, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), NumComputeUnits, NULL);
+    cl_device_id* DevIDs_tmp;
+    DevIDs_tmp = (cl_device_id*)malloc( ciDeviceCounts[I] * sizeof(cl_device_id) );
+
+    ciErrNum = clGetDeviceIDs(clPlatformIDs[I], CL_DEVICE_TYPE_GPU, ciDeviceCounts[I], DevIDs_tmp, NULL);
  
     for(cl_uint J=0; J<ciDeviceCounts[I]; J++){//Go over all devices per platform
-      DevIDs[make_pair(clPlatformIDs[I],J)]          = DevID;
-      DevNumCores[make_pair(clPlatformIDs[I],DevID)] = NumComputeUnits;
+      cl_uint NComputeUnits;
+      ciErrNum = clGetDeviceInfo(DevIDs_tmp[J], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &NComputeUnits, NULL);
+      DevIDs[make_pair(clPlatformIDs[I],J)]                  = DevIDs_tmp[J];
+      DevNumCores[make_pair(clPlatformIDs[I],DevIDs_tmp[J])] = NComputeUnits;
+      cout << setw(19) << "Device "+to_string(I)+" Ncores" << setw(15) << ": " << NComputeUnits 
+           << setw(15) <<  DevIDs_tmp[J] << endl;
     }
-
+    free(DevIDs_tmp);
   }
 }
 
