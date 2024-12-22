@@ -8,12 +8,18 @@
 #include <vector>
 #include <CL/cl.h>
 #include "include/deviceHandler.hpp"
+#include "include/kernelExecutor.hpp"
 
 // Compile with:
 // g++ -o main gpu_blackScholes.cpp -lOpenCL
 //
 
 int main(){
-  DeviceHandler Dhandler;
+  DeviceHandler  Dhandler;
+  kernelExecutor<DeviceHandler> executor(&Dhandler);
+
+  cout << "Total devices : " << Dhandler.Get_Total_NDevs()  << endl;
+  cout << "Total Cores   : " << Dhandler.Get_Total_NCores() << endl;
+
   return 0;
 }
