@@ -26,6 +26,10 @@ class kernelExecutor{
   public:
     kernelExecutor(DeviceHandler *Dhandler_);
 
+    void addKernel(string kernelName, unsigned int Chronoglogy);
+    void setKernel(string kernelName);
+
+
     ~kernelExecutor();
 };
 
