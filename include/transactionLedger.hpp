@@ -15,14 +15,14 @@ typedef struct{
 class TransactionLedger{
   private:
     //All monetary values are given in
-	//GBP (pennies) or minimal partial stocks
+    //GBP (pennies) or minimal partial stocks
     vector<transaction>          BuySaleLedger;
     vector<unsigned long int>    totalStockCost;
     vector<unsigned long int>    totalStockQuantity;
     vector<unsigned long int>    AverageBuyPrice;
     unsigned long int            liquidAssets;
 
-	int LedgerResetLength=100; //n-transactions before writing
+    int LedgerResetLength=100; //n-transactions before writing
 
   public:
     //Constructs the ledger class 
