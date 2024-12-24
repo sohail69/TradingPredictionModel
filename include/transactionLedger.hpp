@@ -4,8 +4,8 @@
 using namespace std;
 
 typedef struct{
-  string stockName;
-  bool BuyOrSell; 
+  string            stockName;
+  bool              BuyOrSell; 
   unsigned long int BuySellPrice;
   unsigned long int stockQuantity;
   unsigned long int Tax;
@@ -14,15 +14,15 @@ typedef struct{
 
 class TransactionLedger{
   private:
+    //All monetary values are given in
+	//GBP (pennies) or minimal partial stocks
     vector<transaction>          BuySaleLedger;
     vector<unsigned long int>    totalStockCost;
     vector<unsigned long int>    totalStockQuantity;
     vector<unsigned long int>    AverageBuyPrice;
+    unsigned long int            liquidAssets;
 
-
-    int *StockPriceHistory;
 	int LedgerResetLength=100; //n-transactions before writing
-    int nStockTypes=20, nHistory=1000;
 
   public:
     //Constructs the ledger class 
@@ -37,10 +37,8 @@ class TransactionLedger{
 
 
 TransactionLedger::TransactionLedger(string stocksConfigFname){
-  StockPriceHistory = new long int[nStockTypes*nHistory];
 }
 
 TransactionLedger::~TransactionLedger(){
   ResetLedgerToFile();
-  delete[] StockPriceHistory;
 }
