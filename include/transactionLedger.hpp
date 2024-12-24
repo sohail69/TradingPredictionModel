@@ -1,3 +1,7 @@
+#ifndef TRANSACTIONLEDGER_HPP
+#define TRANSACTIONLEDGER_HPP
+
+#include <map>
 #include <vector>
 #include <string>
 
@@ -12,18 +16,24 @@ typedef struct{
   double   TransactionTime;
 } transaction;
 
+class DummyIOSocket{
+  public:
+    DummyIOSocket(){};
+    void OutputTransactionLedger(vector<transaction> Ledger){};
+    ~DummyIOSocket(){};
+};
+
 template<typename IOSocket> //output IOsocket
 class TransactionLedger{
   private:
     //All monetary values are given in
     //GBP (pennies) or minimal partial stocks
-    vector<transaction>          BuySaleLedger;
-    vector<unsigned long int>    totalStockCost;
-    vector<unsigned long int>    totalStockQuantity;
-    vector<unsigned long int>    AverageBuyPrice;
-    unsigned long int            liquidAssets;
-    IOSocket                     outputSocket;
-
+    map<string,unsigned long int> totalStockCost;
+    map<string,unsigned long int> totalStockQuantity;
+    map<string,unsigned long int> AverageBuyPrice;
+    vector<transaction>           BuySaleLedger;
+    unsigned long int             liquidAssets;
+    IOSocket                     *outputSocket;
     int LedgerResetLength=100; //n-transactions before writing
 
   public:
@@ -42,9 +52,60 @@ class TransactionLedger{
 
 template<typename IOSocket>
 TransactionLedger<IOSocket>::TransactionLedger(string stocksConfigFname){
+  outputSocket = new IOSocket;
 };
 
 template<typename IOSocket>
 TransactionLedger<IOSocket>::~TransactionLedger(){
   ResetLedgerToFile();
 };
+
+template<typename IOSocket>
+void TransactionLedger<IOSocket>::ResetLedgerToFile(){
+  outputSocket->OutputTransactionLedger(BuySaleLedger);
+  BuySaleLedger.clear();
+};
+
+
+template<typename IOSocket>
+void TransactionLedger<IOSocket>::addTransaction(transaction newTransaction){
+  BuySaleLedger.push_back(newTransaction);
+  string sName(newTransaction.stockName);
+
+  if(newTransaction.BuyOrSell == 0){ //Buy
+    totalStockCost[sName]     = totalStockCost[sName] + (newTransaction.BuySellPrice);
+    totalStockQuantity[sName] = totalStockQuantity[sName] + (newTransaction.stockQuantity);
+    liquidAssets              = liquidAssets - (newTransaction.BuySellPrice);
+  }
+
+  if(newTransaction.BuyOrSell == 1){ //Sell
+    totalStockCost[sName]     = totalStockCost[sName] - AverageBuyPrice[sName]*(newTransaction.stockQuantity);
+    totalStockQuantity[sName] = totalStockQuantity[sName] - (newTransaction.stockQuantity);
+    liquidAssets              = liquidAssets + (newTransaction.BuySellPrice);
+  }
+  AverageBuyPrice[sName] = (totalStockCost[sName]/totalStockQuantity[sName]) + 1;
+  if(BuySaleLedger.size()==LedgerResetLength) ResetLedgerToFile();
+};
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
