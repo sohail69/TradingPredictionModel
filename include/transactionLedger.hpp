@@ -29,7 +29,10 @@ class TransactionLedger{
     TransactionLedger(string stocksConfigFname);
 
     //Sends current ledger data to file
-    ResetLedgerToFile();
+    void addTransaction(transaction newTransaction);
+
+    //Sends current ledger data to file
+    void ResetLedgerToFile();
 
     //deletes the ledger class
     ~TransactionLedger();
