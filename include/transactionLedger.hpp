@@ -12,6 +12,7 @@ typedef struct{
   double   TransactionTime;
 } transaction;
 
+template<typename IOSocket> //output IOsocket
 class TransactionLedger{
   private:
     //All monetary values are given in
@@ -21,6 +22,7 @@ class TransactionLedger{
     vector<unsigned long int>    totalStockQuantity;
     vector<unsigned long int>    AverageBuyPrice;
     unsigned long int            liquidAssets;
+    IOSocket                     outputSocket;
 
     int LedgerResetLength=100; //n-transactions before writing
 
@@ -38,10 +40,11 @@ class TransactionLedger{
     ~TransactionLedger();
 };
 
+template<typename IOSocket>
+TransactionLedger<IOSocket>::TransactionLedger(string stocksConfigFname){
+};
 
-TransactionLedger::TransactionLedger(string stocksConfigFname){
-}
-
-TransactionLedger::~TransactionLedger(){
+template<typename IOSocket>
+TransactionLedger<IOSocket>::~TransactionLedger(){
   ResetLedgerToFile();
-}
+};
