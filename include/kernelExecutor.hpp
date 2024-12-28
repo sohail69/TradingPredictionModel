@@ -11,6 +11,7 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <string>
 #include <vector>
 #include <map>
 #include <CL/cl.h>
@@ -20,18 +21,28 @@ using namespace std;
 template<typename DeviceHandler>
 class kernelExecutor{
   private:
-    DeviceHandler      *Dhandler;   
-    cl_int             ciErrNum;
-    vector<cl_context> devContexts;
+    DeviceHandler            *Dhandler;   
+    cl_int                    ciErrNum;
+    vector<string>            kernelNames;
+    vector<cl_context>        devContexts;
+    vector<cl_command_queue>  devQueues;
   public:
+    ~kernelExecutor();
     kernelExecutor(DeviceHandler *Dhandler_);
 
     void addKernel(string kernelName, unsigned int Chronoglogy);
-    void setKernel(string kernelName);
-
-
-    ~kernelExecutor();
+    void setKernels();
+    void runKernels();
 };
+
+template<typename DeviceHandler>
+kernelExecutor<DeviceHandler>::~kernelExecutor(){
+  devContexts.clear();
+  kernelNames.clear();
+  devContexts.clear();
+  devQueues.clear();
+};
+
 
 template<typename DeviceHandler>
 kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
@@ -39,7 +50,7 @@ kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
   cl_uint nPlats = Dhandler->Get_Total_NPlats();
   cl_device_id *DevIDs;
   devContexts = vector<cl_context>(nPlats);
-
+  devQueues.clear();
 
   for(cl_uint J=0; J<nPlats; J++){
     //Create a single Device context
@@ -55,19 +66,49 @@ kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
         if(DevPlatID==PlatID){
           cout << setw(10) << I << setw(10) << K << endl;
           DevIDs[K] = Dhandler->Get_Dev_ID(I);
-          K++;
         }
       }
       //devContexts[J] = clCreateContext(NULL, nDevs, DevIDs, NULL, NULL, &ciErrNum);
-      cl_context devContext = clCreateContext(NULL, nDevs, &DevIDs[0], NULL, NULL, &ciErrNum);
-      if(ciErrNum==CL_SUCCESS) cout << "Great Executor Success" << endl;
+      cl_context devContext = clCreateContext(NULL, nDevs, DevIDs, NULL, NULL, &ciErrNum);
+
+      for(cl_uint I=0; I<nDevs; I++){
+        cl_command_queue_properties props;
+        cl_command_queue queue = clCreateCommandQueueWithProperties(devContext, DevIDs[I], &props, &ciErrNum);
+        devQueues.push_back(queue);
+      }
+      if(ciErrNum==CL_SUCCESS) cout << "Great Success Executor Built" << endl;
       delete[] DevIDs;
     }
   }
 };
 
+
 template<typename DeviceHandler>
-kernelExecutor<DeviceHandler>::~kernelExecutor(){
+void kernelExecutor<DeviceHandler>::addKernel(string kernelName, unsigned int Chronoglogy){
+
 };
 
+template<typename DeviceHandler>
+void kernelExecutor<DeviceHandler>::setKernels(){
+ /*
+  cl_mem memobjs[] = {clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 2 * NUM_ENTRIES, NULL, NULL), clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * 2 * NUM_ENTRIES, NULL, NULL)};
+
+  // create the compute program
+  // const char* fft1D_1024_kernel_src[1] = {  };
+  cl_program program = clCreateProgramWithSource(context, 1, (const char **)& KernelSource, NULL, NULL);
+
+  // build the compute program executable
+  clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+
+  // create the compute kernel
+  cl_kernel kernel = clCreateKernel(program, "fft1D_1024", NULL);
+*/
+};
+
+template<typename DeviceHandler>
+void kernelExecutor<DeviceHandler>::runKernels(){
+  
+};
 #endif
+
+

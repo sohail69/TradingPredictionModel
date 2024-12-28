@@ -144,7 +144,7 @@ void WebSocketClient::set_message_handler(std::function<void(const std::string&)
 
 // Start the connection process
 void WebSocketClient::run() {
-  resolver_.async_resolve(host_, port_, beast::bind_front_handler(&WebSocketClient::on_resolve, shared_from_this()));
+ // resolver_.async_resolve(host_, port_, beast::bind_front_handler(&WebSocketClient::on_resolve, shared_from_this()));
 };
 
 
@@ -171,7 +171,7 @@ int main() {
 
 
     // Run the client
-    client->run();
+   // client->run();
 /*
     // Run the I/O context in a separate thread to handle asynchronous operations
     std::thread io_thread([&ioc]() {
