@@ -15,7 +15,7 @@ using tcp = asio::ip::tcp;
 template<typename dType>
 class clientWebSocketIO{
   private:
-    string host, target, port;    
+    string host, target, port;
 
     void throwException();
   public:
@@ -31,11 +31,10 @@ template<typename dType>
 clientWebSocketIO<dType>::clientWebSocketIO(const std::string& host, const std::string& port){};
 
 template<typename dType>
-void clientWebSocketIO<dType>::readDatablock<dType>(dType* T, float tWait, int nSkip
-                                                  , int Blocksize, int BlockLength)
-{
+void clientWebSocketIO<dType>::readDatablock(dType* T, float tWait, int nSkip, int Blocksize, int BlockLength){};
 
-};
-
+//Dummmy implementation
+template<typename dType>
+clientWebSocketIO<dType>::~clientWebSocketIO(){};
 
 #endif
