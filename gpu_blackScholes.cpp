@@ -1,5 +1,5 @@
 #define CL_TARGET_OPENCL_VERSION 220
-#define PROGRAM_FILE "vecAdd.cl"
+#define PROGRAM_FILE "modelGARCH.cl"
 #define KERNEL_FUNC "vecAdd"
 
 #include <cmath>
