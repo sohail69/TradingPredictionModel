@@ -15,7 +15,6 @@
 // Compile with:
 // g++ -std=c++17 -O2 -o main gpu_blackScholes.cpp -lboost_system -lpthread -lOpenCL
 //
-//
 
 int main(){
   string fName = "RandomFile";
@@ -28,6 +27,5 @@ int main(){
 
   cout << "Total devices : " << Dhandler.Get_Total_NDevs()  << endl;
   cout << "Total Cores   : " << Dhandler.Get_Total_NCores() << endl;
-
   return 0;
 }

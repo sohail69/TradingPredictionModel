@@ -4,14 +4,18 @@
 // Exponential function
 //
 //=====================
-float MyExp(float x){ return exp(x);};
+float MyExp(float x){ 
+  return exp(x);
+};
 
 //=====================
 //
 // SQRT function
 //
 //=====================
-float MySqrt(float x){ return sqrt(x);};
+float MySqrt(float x){
+  return sqrt(x);
+};
 
 //=====================
 //
@@ -26,47 +30,26 @@ float NormalDist(float Val, float Mean, float Var){
   return N;
 }
 
-float RandGen(float state){
-  return ;
-}
-
-float sigma_t2(){
-
-  return sigmat2;
+//=====================
+//
+// Iterators for I
+// and J
+//
+//=====================
+uint iteratorI(uint l, uint P){ 
+  return l/P;
 };
 
-
-
-__kernel void GARCH_pq(__global const float *stockHistory
-                      , __global const uint nStocks
-                      , __global const uint nHistory
-                      , __global float *stockPrediction){
-
-  int tid = get_local_id(0);
-  uint t;
-  float etat=0.0, sigmat2=0.0, alpha=0.0, beta=0.0, omega=0.0;
-  float zt=0.0, mu=0.0, Rt=0.0;
-  float randNum=0.0;
-  
-  randNum = RandGen(randNum);
-  sigmat2 = omega + alpha*sigmat2 + beta*etat;
-  zt = NormalDist(randNum,mean,sigmat2);
-  etat = MySqrt
-  Rt = mu + etat
+uint iteratorJ(uint l, uint P){
+  uint M = l/P;
+  return (l - M*P);
 };
 
-__kernel void GARCH_calcCoeffs(__global const float *stockHistory
-                             , __global const uint nStocks
-                             , __global const uint nHistory
-                             , __global float *alphat
-                             , __global float *betat){
-
-  int tid = get_local_id(0);
-
-
-
-};
-
+//=====================
+//
+// Calculates the residuals
+//
+//=====================
 void GARCH_calcResiduals(const uint p
                        , const uint q
                        , const float sigmat02
@@ -75,8 +58,7 @@ void GARCH_calcResiduals(const uint p
                        , const float *betat
                        , const float *sigmat2
                        , const float *epsilont2
-                       , float *residual_alpha
-                       , float *residual_beta){
+                       , float *residual){
 
   //Calculate the energy functional
   float Pi = sigmat02 - omega;
@@ -88,19 +70,168 @@ void GARCH_calcResiduals(const uint p
 
   //Calculate the residuals
   for(uint I=0; I<p; I++)
-    residual_alpha[I] = 2.0*Pi*sigmat2[I];
+    residual[I] = 2.0*Pi*sigmat2[I];
 
   for(uint I=0; I<q; I++)
-    residual_beta[I] = 2.0*Pi*epsilont2[I];
+    residual[I+p] = 2.0*Pi*epsilont2[I];
+};
+
+//=====================
+//
+// Calculate the Jacobian
+//
+//=====================
+void GARCH_calcJacobians(const uint p
+                       , const uint q
+                       , const float *alphat
+                       , const float *betat
+                       , const float *sigmat2
+                       , const float *epsilont2
+                       , float **Jac){
+
+  //Calculate the Jacobian block Matrices
+  uint iLower = 0;
+  uint iUpper = p*p;
+  uint iSize  = iUpper - iLower;
+  for(uint K=0; K<iSize; K++){
+    uint I = iteratorI(K,p);
+    uint J = iteratorJ(K,p);
+    Jac[I+0][J+0] = 2.0*sigmat2[I]*sigmat2[J];
+  }
+
+  iLower = p*p;
+  iUpper = p*(p+q);
+  iSize  = iUpper - iLower;
+  for(uint K=0; K<iSize; K++){
+    uint I = iteratorI(K,q);
+    uint J = iteratorJ(K,q);
+    Jac[I+p][J+0] = 2.0*sigmat2[I]*epsilont2[J];
+    Jac[J+0][I+p] = Jac[I][J];
+  }
+
+  iLower = (p+q)*(p+q) - q*q;
+  iUpper = (p+q)*(p+q);
+  iSize  = iUpper - iLower;
+  for(uint K=0; K<iSize; K++){
+    uint I = iteratorI(K,q);
+    uint J = iteratorJ(K,q);
+    Jac[I+p][J+p] = 2.0*epsilont2[I]*epsilont2[J];
+  }
 };
 
 
+//=====================
+//
+// Calculate the Inverse
+// Matrix using
+// LU-factorisation
+//
+//=====================
+void LU_factorInverse(const uint N
+                   , const float **Jac
+                   , float **JacInv){
+
+  for(){
+    for(){
+      for(){
 
 
+};
+
+//=====================
+//
+// Calculate the matrix
+// vector product
+//
+//===================== 
+void ParaMatVec(const uint M
+              , const uint N
+              , const float **Mat
+              , const float *Vec
+              , float *MatVec){
+
+  for(uint I=0; I<N; I++) MatVec[I] = 0.0;
+  for(uint K=0; K<(M*N); K++){
+    uint I = iteratorI(K,M);
+    uint J = iteratorJ(K,M);
+    MatVec[I] += Mat[I][J]*Vec[J]
+  }
+}
+
+//=====================
+//
+// Calculate the sum
+// of two scaled vectors
+//
+//===================== 
+void VecAdd(const uint M
+          , const float alpha
+          , const float beta
+          , const float *vec_alpha
+          , const float *vec_beta
+          , float *vec_res){
+
+  for(uint K=0; K<M; K++)
+    vec_res[K]=alpha*vec_alpha[K] + beta*vec_beta[K];
+}
+
+//=====================
+//
+// Unpack or pack the
+// vector to/from
+// two sub vectors
+//
+//===================== 
+void UnpackVec(const uint M
+             , const uint N
+             , const float *vec_res
+             , float *vec_alpha
+             , float *vec_beta){
+
+  for(uint K=0; K<M; K++)
+    vec_alpha[K]=vec_res[K];
+
+  for(uint K=0; K<N; K++)
+    vec_beta[K]=vec_res[K+M];
+}
+
+void PackVec(const uint M
+             , const uint N
+             , const float *vec_res
+             , float *vec_alpha
+             , float *vec_beta){
+
+  for(uint K=0; K<M; K++)
+    vec_res[K]=vec_alpha[K];
+
+  for(uint K=0; K<N; K++)
+    vec_res[K+M]=vec_beta[K];
+}
 
 
+//=====================
+//
+// Uses Newtons method
+// to calculate the
+// GARH coefficients
+//
+//=====================  
+__kernel void GARCH_calcCoeffs(__global const float *stockHistory
+                             , __global const uint nStocks
+                             , __global const uint nHistory
+                             , __global float *alphat
+                             , __global float *betat){
+
+  int tid = get_local_id(0);
+  uint Size = p+q;
+  //Newton Iterations
+  GARCH_calcJacobians(p, q, alphat, betat, sigmat2, epsilont2, Jac);
 
 
-
-
-
+  for(uint nIters=0; nIters<20; nIter++){
+    UnpackVec(p, q, u, alphat, betat);
+    GARCH_calcResiduals(p, q, sigmat02, omega, alphat, betat, sigmat2, epsilont2, residual);
+    ParaMatVec(Size, Size, JacInv, residual, du);
+    VecAdd(Size, 1.0, -1.0,  u, du, u);
+  }
+};
