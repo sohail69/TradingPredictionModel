@@ -127,16 +127,24 @@ void GARCH_calcJacobians(const uint p
 // LU-factorisation
 //
 //=====================
-void LU_factorInverse(const uint N
-                   , const float **Jac
-                   , float **JacInv){
+void LU_factor(const uint N
+             , const float **Amat
+             , float **LUMat){
 
-  for(){
-    for(){
-      for(){
+  for(uint I=1; I<N; I++){
+    for(uint K=1; K<N; K++){
+      LUMat[I][K] = Amat[I][K];
+    }
 
-
+    for(uint K=1, I<(I-1); I++){
+      LUMat[I][K] = Amat[I][K]/Amat[K][K];
+      for(uint J=0; J<(K+1); J++){
+        LUMat[I][J] = LUMat[I][J] - LUMat[I][K]*LUMat[K][J];
+      }
+    }
+  }
 };
+
 
 //=====================
 //
@@ -165,14 +173,13 @@ void ParaMatVec(const uint M
 //
 //===================== 
 void VecAdd(const uint M
-          , const float alpha
-          , const float beta
-          , const float *vec_alpha
-          , const float *vec_beta
+          , const float a
+          , const float b
+          , const float *vec_a
+          , const float *vec_b
           , float *vec_res){
 
-  for(uint K=0; K<M; K++)
-    vec_res[K]=alpha*vec_alpha[K] + beta*vec_beta[K];
+  for(uint K=0; K<M; K++) vec_res[K]=a*vec_a[K] + b*vec_b[K];
 }
 
 //=====================
@@ -233,5 +240,6 @@ __kernel void GARCH_calcCoeffs(__global const float *stockHistory
     GARCH_calcResiduals(p, q, sigmat02, omega, alphat, betat, sigmat2, epsilont2, residual);
     ParaMatVec(Size, Size, JacInv, residual, du);
     VecAdd(Size, 1.0, -1.0,  u, du, u);
+    PackVec(p, q, u, alphat, betat);
   }
 };
