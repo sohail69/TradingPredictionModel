@@ -1,4 +1,4 @@
-#define CL_TARGET_OPENCL_VERSION 220
+#include "OCLVersion.h"
 #ifndef DEVICEHANDLER_HPP
 #define DEVICEHANDLER_HPP 
 

@@ -1,4 +1,4 @@
-#define CL_TARGET_OPENCL_VERSION 220
+#include "OCLVersion.h"
 #ifndef KERNELEXECUTOR_HPP
 #define KERNELEXECUTOR_HPP
 
@@ -17,6 +17,9 @@
 #include <CL/cl.h>
 
 using namespace std;
+
+class AbstractKernel
+
 
 template<typename DeviceHandler>
 class kernelExecutor{
@@ -49,7 +52,7 @@ kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
   Dhandler = Dhandler_;
   cl_uint nPlats = Dhandler->Get_Total_NPlats();
   cl_device_id *DevIDs;
-  devContexts = vector<cl_context>(nPlats);
+  devContexts.clear();
   devQueues.clear();
 
   for(cl_uint J=0; J<nPlats; J++){
@@ -68,8 +71,9 @@ kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
           DevIDs[K] = Dhandler->Get_Dev_ID(I);
         }
       }
-      //devContexts[J] = clCreateContext(NULL, nDevs, DevIDs, NULL, NULL, &ciErrNum);
+
       cl_context devContext = clCreateContext(NULL, nDevs, DevIDs, NULL, NULL, &ciErrNum);
+      devContexts.push_back(devContext);
 
       for(cl_uint I=0; I<nDevs; I++){
         cl_command_queue_properties props;

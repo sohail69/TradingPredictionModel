@@ -1,4 +1,4 @@
-#define CL_TARGET_OPENCL_VERSION 220
+#include "include/OCLVersion.h"
 #define PROGRAM_FILE "modelGARCH.cl"
 #define KERNEL_FUNC "vecAdd"
 

@@ -155,13 +155,8 @@ std::string receive_websocket_frame(boost::asio::ssl::stream<tcp::socket>& ssl_s
 
 int main(int argc, char* argv[]) {
     try {
-        if (argc != 3) {
-            std::cerr << "Usage: alpaca_websocket_client <API_KEY_ID> <SECRET_KEY>\n";
-            return 1;
-        }
-
-        std::string api_key = argv[1];
-        std::string secret_key = argv[2];
+        std::string api_key    ="PKZLV5L2XPYAFM5HVTLO";
+        std::string secret_key ="4zLDE7vbS1ABhNWlFNCJLgdeqsXyp45f3va0q8AO";
 
         // Initialize Boost.Asio
         boost::asio::io_context io_context;
@@ -175,12 +170,14 @@ int main(int argc, char* argv[]) {
         ssl::stream<tcp::socket> ssl_socket(io_context, ctx);
 
         // Resolve the Alpaca WebSocket endpoint
-        std::string host = "stream.data.alpaca.markets";
+//        std::string host = "stream.data.alpaca.markets/v1beta3/crypto/us";
+        std::string host = "https://paper-api.alpaca.markets/v2";
         std::string port = "443";
         auto endpoints = resolver.resolve(host, port);
 
         // Connect to the endpoint
         boost::asio::connect(ssl_socket.lowest_layer(), endpoints);
+
 
         // Perform SSL handshake
         ssl_socket.handshake(ssl::stream_base::client);
@@ -289,16 +286,13 @@ int main(int argc, char* argv[]) {
             std::cerr << "Failed to receive subscription response\n";
             return 1;
         }
-
         std::cout << "Subscription response: " << subscribe_response << "\n";
 
         // Start receiving data in a loop
         std::cout << "Listening for incoming messages...\n";
         while (true) {
             std::string message = receive_websocket_frame(ssl_socket);
-            if (message.empty()) {
-                break; // Connection closed or error
-            }
+            if (message.empty()) break; // Connection closed or error
             std::cout << "Received message: " << message << "\n";
             // Implement further processing as needed
         }
