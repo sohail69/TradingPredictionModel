@@ -3,24 +3,80 @@
 
 // Include standard libraries
 #include <iostream>
-#include <cstdlib>
 #include <string>
-#include <thread>
-#include <chrono>
+#include <cstring>
 
-// Include Boost libraries
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/algorithm/string.hpp>
+// Include standard network libraries
+#include <unistd.h> // For close()
+#include <netdb.h>  // For getaddrinfo()
+#include <arpa/inet.h>
 
 // Include OpenSSL libraries
-#include <openssl/sha.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/buffer.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
-namespace asio = boost::asio;
-using tcp = asio::ip::tcp;
+
+// Buffer size for reading data
+const int BUFFER_SIZE = 4096;
+
+// Initialize OpenSSL
+void initialize_openssl()
+{
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+}
+
+// Create an SSL_CTX object
+SSL_CTX* create_context()
+{
+    const SSL_METHOD* method;
+    SSL_CTX* ctx;
+    method = TLS_client_method();
+    ctx = SSL_CTX_new(method);
+    if (!ctx)
+    {
+        std::cerr << "Unable to create SSL context" << std::endl;
+        ERR_print_errors_fp(stderr);
+        exit(EXIT_FAILURE);
+    }
+    return ctx;
+}
+
+// Establish a TCP connection to the given hostname and port
+int create_socket(const std::string& hostname, const std::string& port)
+{
+    struct addrinfo hints, *res, *p;
+    int sockfd, connectfd;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;      // IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;  // TCP stream sockets
+
+    int status = getaddrinfo(hostname.c_str(), port.c_str(), &hints, &res);
+    if (status != 0) std::cerr << "getaddrinfo: " << gai_strerror(status) << std::endl;
+    if (status != 0) exit(EXIT_FAILURE);
+
+    // Loop through all the results and connect to the first we can
+    for(p = res; p != NULL; p = p->ai_next)
+    {
+      sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+      if (sockfd  == -1)   perror("socket"); //Socket Error
+      if (sockfd  == -1)   continue;         //Look for next socket
+
+      connectfd = connect(sockfd, p->ai_addr, p->ai_addrlen);
+      if (connectfd == -1) perror("connect");//Connection Error
+      if (connectfd == -1) close(sockfd);    //Close the socket
+
+      if((connectfd != -1)and(sockfd  != -1)) break; // If we get here, we have successfully connected
+    }
+
+    if (p == NULL) std::cerr << "Failed to connect" << std::endl;
+    if (p == NULL) exit(EXIT_FAILURE);
+
+    freeaddrinfo(res); // Free the linked list
+    return sockfd;
+}
+
 
 //
 //
@@ -31,8 +87,10 @@ template<typename dType>
 class clientWebSocketIO{
   private:
     string target, host, port;
+    SSL_CTX* ctx;
+    int sfd;
 
-    void throwException();
+    void throwSSLError();
   public:
     clientWebSocketIO(const std::string& host, const std::string& port);
 
@@ -41,16 +99,113 @@ class clientWebSocketIO{
     ~clientWebSocketIO();
 };
 
-//Dummmy implementation
+//
+//
+//Find an available socket and
+//estabilish a connection
+//
+//
 template<typename dType>
-clientWebSocketIO<dType>::clientWebSocketIO(const std::string& host, const std::string& port){};
+clientWebSocketIO<dType>::clientWebSocketIO(const std::string& host, const std::string& port){
+    // Initialize OpenSSL
+    initialize_openssl();
 
-//Dummmy implementation
-template<typename dType>
-void clientWebSocketIO<dType>::readDatablock(dType* T, float tWait, int nSkip, int Blocksize, int BlockLength){};
+    // Create SSL context
+    SSL_CTX* ctx = create_context();
 
-//Dummmy implementation
+    // Create a TCP socket and connect to the server
+    int server_fd = create_socket(hostname, port);
+
+    // Create an SSL object
+    SSL* ssl = SSL_new(ctx);
+    if (!ssl) throwSSLError( "Unable to create SSL structure", ctx, server_fd);
+    SSL_set_fd(ssl, server_fd);
+
+    // **Set the SNI hostname**
+    bool checkSNI = SSL_set_tlsext_host_name(ssl, hostname.c_str() );
+    if(checkSNI != true) SSL_free(ssl);
+    if(checkSNI != true) throwSSLError( "Error setting SNI hostname", ctx, server_fd);
+
+    // Perform SSL handshake
+    int sslID = SSL_connect(ssl);
+    if (sslID <= 0) SSL_free(ssl);
+    if (sslID <= 0) throwSSLError( "SSL connection failed", ctx,  server_fd);
+};
+
+//
+//
+//Send a request and
+//read in a data block
+//
+//
 template<typename dType>
-clientWebSocketIO<dType>::~clientWebSocketIO(){};
+void clientWebSocketIO<dType>::readDatablock(dType* T, float tWait, int nSkip, int Blocksize, int BlockLength){
+    // Formulate the HTTP GET request
+    std::string request = "GET " + path + " HTTP/1.1\r\n"
+                          "Host: " + hostname + "\r\n"
+                          "User-Agent: C++ HTTPS Client\r\n"
+                          "Accept: */*\r\n"
+                          "Connection: close\r\n\r\n";
+
+    // Send the request
+    int bytes_sent = SSL_write(ssl, request.c_str(), request.length());
+    if (bytes_sent <= 0) SSL_free(ssl);
+    if (bytes_sent <= 0) throwSSLError("Failed to send request" , ctx,  server_fd);
+ 
+    // Buffer to hold incoming data
+    char buffer[BUFFER_SIZE];
+    std::string response;
+
+    // Read the response
+    while(true)
+    {
+      int bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+      if (bytes_received >  0) response.append(buffer, bytes_received);
+      if (bytes_received <= 0) break;
+    }
+
+    // Separate headers and body
+    std::string headers, body;
+    size_t pos = response.find("\r\n\r\n");
+    if (pos != std::string::npos) headers = response.substr(0, pos);
+    if (pos != std::string::npos) body = response.substr(pos + 4);
+    if (pos == std::string::npos) body = response; // No headers found, return entire response
+    return body;
+};
+
+//
+//
+// Close the connection
+// and release the socket
+//
+//
+template<typename dType>
+clientWebSocketIO<dType>::~clientWebSocketIO(){
+    // Close SSL connection
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
+    close(server_fd);
+    SSL_CTX_free(ctx);
+    EVP_cleanup();
+};
+
+
+//
+//
+// Throw an exception,
+// close the connection
+// and release the socket
+//
+//
+template<typename dType>
+void  clientWebSocketIO<dType>::throwSSLError(std::string ErrMessage){
+  std::cerr <<  ErrMessage << std::endl;
+  ERR_print_errors_fp(stderr);
+  close(sfd);
+  SSL_CTX_free(ctx);
+  EVP_cleanup();
+  exit(EXIT_FAILURE);
+}
+
 
 #endif
