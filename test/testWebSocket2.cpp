@@ -17,12 +17,6 @@ void initialize_openssl()
     OpenSSL_add_ssl_algorithms();
 }
 
-// Cleanup OpenSSL
-void cleanup_openssl()
-{
-    EVP_cleanup();
-}
-
 // Create an SSL_CTX object
 SSL_CTX* create_context()
 {
@@ -45,7 +39,7 @@ void throwSSLError(std::string ErrMessage, SSL_CTX* ctx, int sfd){
   ERR_print_errors_fp(stderr);
   close(sfd);
   SSL_CTX_free(ctx);
-  cleanup_openssl();
+  EVP_cleanup();
   exit(EXIT_FAILURE);
 }
 
@@ -130,7 +124,7 @@ std::string fetchOrderBooks(const std::string path, const std::string hostname, 
     std::string response;
 
     // Read the response
-    while (true)
+    while(true)
     {
       int bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
       if (bytes_received >  0) response.append(buffer, bytes_received);
@@ -142,7 +136,7 @@ std::string fetchOrderBooks(const std::string path, const std::string hostname, 
     SSL_free(ssl);
     close(server_fd);
     SSL_CTX_free(ctx);
-    cleanup_openssl();
+    EVP_cleanup();
 
 
     // Separate headers and body
