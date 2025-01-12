@@ -88,13 +88,17 @@ class clientWebSocketIO{
   private:
     string target, host, port;
     SSL_CTX* ctx;
-    int sfd;
+    int server_fd;
+    const std::string path;
+    const std::string& host, port;
 
-    void throwSSLError();
+    void throwSSLError(std::string ErrMessage);
   public:
-    clientWebSocketIO(const std::string& host, const std::string& port);
+    clientWebSocketIO(const std::string path_
+                    , const std::string& host_
+                    , const std::string& port_);
 
-    void readDatablock(dType* T, float tWait, int nSkip, int Blocksize, int BlockLength);
+    void readDatablock();
 
     ~clientWebSocketIO();
 };
@@ -106,30 +110,33 @@ class clientWebSocketIO{
 //
 //
 template<typename dType>
-clientWebSocketIO<dType>::clientWebSocketIO(const std::string& host, const std::string& port){
+clientWebSocketIO<dType>::clientWebSocketIO(const std::string path_
+                                          , const std::string& host_
+                                          , const std::string& port_)
+                                          :path(path_), host(host_), port(port_){
     // Initialize OpenSSL
     initialize_openssl();
 
     // Create SSL context
-    SSL_CTX* ctx = create_context();
+    ctx = create_context();
 
     // Create a TCP socket and connect to the server
-    int server_fd = create_socket(hostname, port);
+    server_fd = create_socket(hostname, port);
 
     // Create an SSL object
     SSL* ssl = SSL_new(ctx);
-    if (!ssl) throwSSLError( "Unable to create SSL structure", ctx, server_fd);
+    if (!ssl) throwSSLError( "Unable to create SSL structure");
     SSL_set_fd(ssl, server_fd);
 
     // **Set the SNI hostname**
     bool checkSNI = SSL_set_tlsext_host_name(ssl, hostname.c_str() );
     if(checkSNI != true) SSL_free(ssl);
-    if(checkSNI != true) throwSSLError( "Error setting SNI hostname", ctx, server_fd);
+    if(checkSNI != true) throwSSLError( "Error setting SNI hostname");
 
     // Perform SSL handshake
     int sslID = SSL_connect(ssl);
     if (sslID <= 0) SSL_free(ssl);
-    if (sslID <= 0) throwSSLError( "SSL connection failed", ctx,  server_fd);
+    if (sslID <= 0) throwSSLError( "SSL connection failed");
 };
 
 //
@@ -139,7 +146,7 @@ clientWebSocketIO<dType>::clientWebSocketIO(const std::string& host, const std::
 //
 //
 template<typename dType>
-void clientWebSocketIO<dType>::readDatablock(dType* T, float tWait, int nSkip, int Blocksize, int BlockLength){
+void clientWebSocketIO<dType>::readDatablock(std::string body){
     // Formulate the HTTP GET request
     std::string request = "GET " + path + " HTTP/1.1\r\n"
                           "Host: " + hostname + "\r\n"
@@ -150,7 +157,7 @@ void clientWebSocketIO<dType>::readDatablock(dType* T, float tWait, int nSkip, i
     // Send the request
     int bytes_sent = SSL_write(ssl, request.c_str(), request.length());
     if (bytes_sent <= 0) SSL_free(ssl);
-    if (bytes_sent <= 0) throwSSLError("Failed to send request" , ctx,  server_fd);
+    if (bytes_sent <= 0) throwSSLError("Failed to send request" );
  
     // Buffer to hold incoming data
     char buffer[BUFFER_SIZE];
@@ -165,12 +172,11 @@ void clientWebSocketIO<dType>::readDatablock(dType* T, float tWait, int nSkip, i
     }
 
     // Separate headers and body
-    std::string headers, body;
+    std::string headers;
     size_t pos = response.find("\r\n\r\n");
     if (pos != std::string::npos) headers = response.substr(0, pos);
     if (pos != std::string::npos) body = response.substr(pos + 4);
     if (pos == std::string::npos) body = response; // No headers found, return entire response
-    return body;
 };
 
 //
@@ -201,7 +207,7 @@ template<typename dType>
 void  clientWebSocketIO<dType>::throwSSLError(std::string ErrMessage){
   std::cerr <<  ErrMessage << std::endl;
   ERR_print_errors_fp(stderr);
-  close(sfd);
+  close(server_fd);
   SSL_CTX_free(ctx);
   EVP_cleanup();
   exit(EXIT_FAILURE);

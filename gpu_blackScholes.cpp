@@ -17,13 +17,13 @@
 //
 
 int main(){
-  string fName = "RandomFile";
-  string Host = "binance.com";
-  string port = "443";
+  const string path = "/v1beta3/crypto/us/latest/orderbooks?symbols=BTC/USD";
+  const string hostname = "data.alpaca.markets";
+  const string port = "443";
   DeviceHandler     Dhandler;
   kernelExecutor<DeviceHandler>    executor(&Dhandler);
   TransactionLedger<DummyIOSocket> TLedger(fName);
-  clientWebSocketIO<double>        webData(Host,port);
+  clientWebSocketIO<double>        webData(path,Host,port);
 
   cout << "Total devices : " << Dhandler.Get_Total_NDevs()  << endl;
   cout << "Total Cores   : " << Dhandler.Get_Total_NCores() << endl;
