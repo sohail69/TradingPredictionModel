@@ -2,11 +2,9 @@
 #ifndef KERNELEXECUTOR_HPP
 #define KERNELEXECUTOR_HPP
 
-//
 // 1-context per platform
 // 1-quene per device
 //
-
 
 #include <cmath>
 #include <iomanip>
@@ -18,17 +16,24 @@
 
 using namespace std;
 
-class AbstractKernel
-
-
+/****************************************************\
+!  The kernel executor:
+!
+!  Takes a device handler which holds records of local
+!  machine devices and supplied Kernels to construct 
+!  a Kernel executor which decides how kernels are 
+!  executed and on which devices
+!
+\****************************************************/
 template<typename DeviceHandler>
 class kernelExecutor{
   private:
-    DeviceHandler            *Dhandler;   
-    cl_int                    ciErrNum;
-    vector<string>            kernelNames;
-    vector<cl_context>        devContexts;
-    vector<cl_command_queue>  devQueues;
+    DeviceHandler               *Dhandler;
+    cl_int                       ciErrNum;
+    map<unsigned int,string>     kernelNames;
+    map<unsigned int,cl_program> programs;
+    vector<cl_context>           devContexts;
+    vector<cl_command_queue>     devQueues;
   public:
     ~kernelExecutor();
     kernelExecutor(DeviceHandler *Dhandler_);
@@ -38,6 +43,19 @@ class kernelExecutor{
     void runKernels();
 };
 
+
+
+/****************************************************\
+!  The kernel executor Implementation:
+!
+!  addKernel : add additional program+chronology
+!  setKernels: sets Kernel memory an queues before exec
+!  runKernels: runs kernels on device(s)
+!
+\****************************************************/
+//
+// Class destructor
+//
 template<typename DeviceHandler>
 kernelExecutor<DeviceHandler>::~kernelExecutor(){
   devContexts.clear();
@@ -46,7 +64,11 @@ kernelExecutor<DeviceHandler>::~kernelExecutor(){
   devQueues.clear();
 };
 
-
+//
+// Performs a kernel execution
+// event that is prescheduled
+// and configured
+//
 template<typename DeviceHandler>
 kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
   Dhandler = Dhandler_;
@@ -86,10 +108,13 @@ kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
   }
 };
 
-
+//
+// Adds a kernel program and
+// its necessary chronology
+//
 template<typename DeviceHandler>
 void kernelExecutor<DeviceHandler>::addKernel(string kernelName, unsigned int Chronoglogy){
-
+  program = build_program(context, device, PROGRAM_FILE);
 };
 
 template<typename DeviceHandler>

@@ -83,8 +83,6 @@ void GARCH_calcResiduals(const uint p
 //=====================
 void GARCH_calcJacobians(const uint p
                        , const uint q
-                       , const float *alphat
-                       , const float *betat
                        , const float *sigmat2
                        , const float *epsilont2
                        , float **Jac){
@@ -208,11 +206,13 @@ void PackVec(const uint M
              , float *vec_alpha
              , float *vec_beta){
 
-  for(uint K=0; K<M; K++)
-    vec_res[K]=vec_alpha[K];
+  if(M != 0)
+    for(uint K=0; K<M; K++)
+      vec_res[K]=vec_alpha[K];
 
-  for(uint K=0; K<N; K++)
-    vec_res[K+M]=vec_beta[K];
+  if(N != 0)
+    for(uint K=0; K<N; K++)
+      vec_res[K+M]=vec_beta[K];
 }
 
 
@@ -232,7 +232,7 @@ __kernel void GARCH_calcCoeffs(__global const float *stockHistory
   int tid = get_local_id(0);
   uint Size = p+q;
   //Newton Iterations
-  GARCH_calcJacobians(p, q, alphat, betat, sigmat2, epsilont2, Jac);
+  GARCH_calcJacobians(p, q, sigmat2, epsilont2, Jac);
 
 
   for(uint nIters=0; nIters<20; nIter++){

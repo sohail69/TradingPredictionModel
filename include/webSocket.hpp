@@ -15,16 +15,35 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+//Json File Parsing
+#include "JsonParser.hpp"
+
+// Template function to connect and
+// read from a WebSocket
+//
+template<typename dType>
+class clientWebSocketIO{
+  private:
+    string path, hostname, port;
+    SSL_CTX* ctx;
+    SSL* ssl;
+    int server_fd;
+    string ConnStatus, sdType;
+
+    void throwSSLError(std::string ErrMessage);
+  public:
+    clientWebSocketIO(const std::string path_
+                    , const std::string host_
+                    , const std::string port_);
+
+    void readDatablock(std::string body, bool IsLastMessage);
+
+    ~clientWebSocketIO();
+};
 
 // Buffer size for reading data
 const int BUFFER_SIZE = 4096;
 
-// Initialize OpenSSL
-void initialize_openssl()
-{
-    SSL_load_error_strings();
-    OpenSSL_add_ssl_algorithms();
-}
 
 // Create an SSL_CTX object
 SSL_CTX* create_context()
@@ -33,14 +52,13 @@ SSL_CTX* create_context()
     SSL_CTX* ctx;
     method = TLS_client_method();
     ctx = SSL_CTX_new(method);
-    if (!ctx)
-    {
+    if (!ctx){
         std::cerr << "Unable to create SSL context" << std::endl;
         ERR_print_errors_fp(stderr);
         exit(EXIT_FAILURE);
     }
     return ctx;
-}
+};
 
 // Establish a TCP connection to the given hostname and port
 int create_socket(const std::string& hostname, const std::string& port)
@@ -75,47 +93,20 @@ int create_socket(const std::string& hostname, const std::string& port)
 
     freeaddrinfo(res); // Free the linked list
     return sockfd;
-}
-
-
-//
-//
-// Template function to connect and read from a WebSocket
-//
-//
-template<typename dType>
-class clientWebSocketIO{
-  private:
-    string target, host, port;
-    SSL_CTX* ctx;
-    int server_fd;
-    const std::string path;
-    const std::string& host, port;
-
-    void throwSSLError(std::string ErrMessage);
-  public:
-    clientWebSocketIO(const std::string path_
-                    , const std::string& host_
-                    , const std::string& port_);
-
-    void readDatablock();
-
-    ~clientWebSocketIO();
 };
 
-//
-//
+
 //Find an available socket and
 //estabilish a connection
 //
-//
 template<typename dType>
 clientWebSocketIO<dType>::clientWebSocketIO(const std::string path_
-                                          , const std::string& host_
-                                          , const std::string& port_)
-                                          :path(path_), host(host_), port(port_){
+                                          , const std::string  host_
+                                          , const std::string port_)
+                                          :path(path_), hostname(host_), port(port_){
     // Initialize OpenSSL
-    initialize_openssl();
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
 
     // Create SSL context
     ctx = create_context();
@@ -124,11 +115,11 @@ clientWebSocketIO<dType>::clientWebSocketIO(const std::string path_
     server_fd = create_socket(hostname, port);
 
     // Create an SSL object
-    SSL* ssl = SSL_new(ctx);
+    ssl = SSL_new(ctx);
     if (!ssl) throwSSLError( "Unable to create SSL structure");
-    SSL_set_fd(ssl, server_fd);
 
     // **Set the SNI hostname**
+    SSL_set_fd(ssl, server_fd);
     bool checkSNI = SSL_set_tlsext_host_name(ssl, hostname.c_str() );
     if(checkSNI != true) SSL_free(ssl);
     if(checkSNI != true) throwSSLError( "Error setting SNI hostname");
@@ -139,20 +130,24 @@ clientWebSocketIO<dType>::clientWebSocketIO(const std::string path_
     if (sslID <= 0) throwSSLError( "SSL connection failed");
 };
 
-//
-//
+
 //Send a request and
 //read in a data block
 //
-//
 template<typename dType>
-void clientWebSocketIO<dType>::readDatablock(std::string body){
+void clientWebSocketIO<dType>::readDatablock(std::string body, bool IsLastBlock){
+//    sdType = "*/*"
+    sdType = "application/json";
+   // ConnStatus = "close";
+    if(IsLastBlock == true) ConnStatus = "close";
+    if(IsLastBlock != true) ConnStatus = "keep-alive";
+
     // Formulate the HTTP GET request
     std::string request = "GET " + path + " HTTP/1.1\r\n"
                           "Host: " + hostname + "\r\n"
-                          "User-Agent: C++ HTTPS Client\r\n"
-                          "Accept: */*\r\n"
-                          "Connection: close\r\n\r\n";
+                          "User-Agent: MyApp (C++ HTTPS Client)\r\n"
+                          "Accept: "+sdType+"\r\n"
+                          "Connection: "+ConnStatus+"\r\n\r\n";
 
     // Send the request
     int bytes_sent = SSL_write(ssl, request.c_str(), request.length());
@@ -161,15 +156,39 @@ void clientWebSocketIO<dType>::readDatablock(std::string body){
  
     // Buffer to hold incoming data
     char buffer[BUFFER_SIZE];
-    std::string response;
+    std::string response = "";
+    std::array<int,2> DeltaDelimCounts, ObjDepth;
+    std::array<int,8> DelimCount;
+
+/***********************************************/
+   //initialise the arrays
+   unsigned aggregate_bytes=0;
+   for(int I=0; I<8; I++) DelimCount[I] = 0;
+   DeltaDelimCounts[0] = 0;
+   DeltaDelimCounts[1] = 0;
+   ObjDepth[0] = 0;
+   ObjDepth[1] = 0;
+/***********************************************/
 
     // Read the response
     while(true)
     {
-      int bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+      unsigned bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+      aggregate_bytes = aggregate_bytes + bytes_received;
       if (bytes_received >  0) response.append(buffer, bytes_received);
-      if (bytes_received <= 0) break;
+      if(bytes_received <= 0) break;
+      cout << response << endl;
     }
+
+    dataDelimCounter(response, &DelimCount, &DeltaDelimCounts);
+    dataObjDepth(response, &ObjDepth);
+    for(int I=0; I<8; I++) cout << setw(8) << DelimCount[I];
+    cout << endl;
+    for(int I=0; I<2; I++) cout << setw(8) << DeltaDelimCounts[I];
+    cout << endl;
+    for(int I=0; I<2; I++) cout << setw(8) << ObjDepth[I];
+    cout << endl;
+
 
     // Separate headers and body
     std::string headers;
@@ -179,15 +198,15 @@ void clientWebSocketIO<dType>::readDatablock(std::string body){
     if (pos == std::string::npos) body = response; // No headers found, return entire response
 };
 
-//
-//
+
 // Close the connection
 // and release the socket
-//
 //
 template<typename dType>
 clientWebSocketIO<dType>::~clientWebSocketIO(){
     // Close SSL connection
+    std::string body;
+    readDatablock(body, true);
     SSL_shutdown(ssl);
     SSL_free(ssl);
     close(server_fd);
@@ -196,12 +215,9 @@ clientWebSocketIO<dType>::~clientWebSocketIO(){
 };
 
 
-//
-//
 // Throw an exception,
 // close the connection
 // and release the socket
-//
 //
 template<typename dType>
 void  clientWebSocketIO<dType>::throwSSLError(std::string ErrMessage){
@@ -212,6 +228,4 @@ void  clientWebSocketIO<dType>::throwSSLError(std::string ErrMessage){
   EVP_cleanup();
   exit(EXIT_FAILURE);
 }
-
-
 #endif
