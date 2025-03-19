@@ -114,7 +114,16 @@ kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
 //
 template<typename DeviceHandler>
 void kernelExecutor<DeviceHandler>::addKernel(string kernelName, unsigned int Chronoglogy){
-  program = build_program(context, device, PROGRAM_FILE);
+//  if(programs[Chronoglogy] != programs.end()) throw("Error already a program in that position");
+//  programs[Chronoglogy] = build_program(devContexts[0], device, kernelName);
+    // Create the compute program from the source buffer
+    program = clCreateProgramWithSource(context, 1, (const char **) & KernelSource, NULL, &err);
+    checkError(err, "Creating program");
+
+    // Build the program  
+    err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+    
+  ciErrNum = clBuildProgram(programs[Chronoglogy], 0, NULL, NULL, NULL, NULL);
 };
 
 template<typename DeviceHandler>

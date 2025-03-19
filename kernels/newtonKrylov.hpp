@@ -55,6 +55,7 @@ void InnerProd(Real ab
   for(Integer I=0; I<nSize; I++) ab += a_vec[I]*b_vec[I];
 };
 
+
 //Calculate the inner product 
 //of group of arrays
 template<typename Real, typename Integer, Integer N>
@@ -73,6 +74,7 @@ void ArnoldiMGS(DenseSqrMat<Real,N> Hess
   scaleVal = (1.0/Hess[I+1][I]);
   ScaleVec(*v_pp[I+1], w_pp, scaleVal);
 };
+
 
 //Apply givens rotations to a 
 //Hessenberg matrix
@@ -101,15 +103,52 @@ void GivensRotationsDenseMat(DenseSqrMat<Real,N> Hess
   beta[I]   =  cs_k*beta[I];
 };
 
+//Inverts a square submatrix of size N
+//on a square matrix A of size M and
+//the resultant Inverse is stored in AInv
+//uses gaussian elimination
+template<typename Real, typename Integer, Integer M>
+void InvertSubMat(DenseSqrMat<Real,M> matAInv
+                , const DenseSqrMat<Real,M> matA
+                , const Integer N)
+{
+  if(M < N) throw("Error matrix dimensions do not concur");
+  Real con;
+  for(Integer I=0; I<N; I++){
+    con = matA[I][I];
+    for(Integer J=0; J<N; J++){
+      matAInv[I][K] = matA[I][J]/con;
+    }
+    for(Integer J=0; J<N; J++){
+      if(I != J){
+        con = matA[I][J];
+        matAInv[I][J] = Real(0.0);
+        for(Integer K=0; K<; K++){
+          matAInv(I,K) = matAInv(I,K)-matAInv(J,K)*con;
+        }
+      }
+    }
+  }
+};
 
+//Update the vector of solutions using the vector
+//series and the 
+template<typename Real, typename Integer, Integer M>
+void DenseMatVec(Vector Ax
+                , const Vector x
+                , const DenseSqrMat<Real,M> matA
+                , const Integer N)
+{
+
+};
 
 
 /****************************************************\
 !  Finite difference Jacobian Increment action
 !
-!  Approximates the jacobian Increment matrix
+!  Approximates the jacobian-Increment matrix
 !  vector product for usage in the Newton-Krylov
-!  method using only
+!  method using only residual calculations
 !
 \****************************************************/  
 template<typename Real, typename Integer>
@@ -120,13 +159,12 @@ void FDJacobian(Vector<Real> Jac_du
               , const Vector<Real> res0
               , function<void(const Vector<Real> U_sol, Vector<Real> Resid)> residual){
   Real one = 1.0;
-  Real sigma = 1.0E-07;
+  Real sigma = 1.0E-06;
   Integer nSize = Jac_du.size();
   for(Integer I=0; I<nSize; I++) u_tmp[I] = u0[I] + sigma*du[I];
   residual(U_sol, Jac_du);
   for(Integer I=0; I<nSize; I++) Jac_du[I] = (one/sigma)*(Jac_du[I] - res0[I]);
 }
-
 
 
 /****************************************************\
@@ -148,17 +186,29 @@ void FGMRES(Vector<Real> u_sol
 
 
   Integer I=0;
-  DenseSqrMat<Real,M+1> Hess;
+  DenseSqrMat<Real,M+1> Hess, HessInv;
   Vector<Real> sn(M+1), cs(M+1), beta(M+1);
   Vector<Real> u_tmp, Jac_du, w_vec;
+  Real b_norm, err;
 
   for(Integer LIters=0; LIters<LIterLim; LIters++){//Restart iterations
     for(Integer I=0; I<M; I++){//GMRES Iterations
       FDJacobian<Real,Integer>(Jac_du, u_tmp, du, u0, res0, residual);
       ArnoldiMGS<Real,Integer,M>(Hess, w_vec, z_vec, I);
       GivensRotationsDenseMat<Real,Integer,M>(Hess, beta, cs, sn, I);
-
+      err = beta[I]/b_norm; 
+      if(err < ltol) break;
     }
+    //Invert the Hessenberg matrix
+    InvertSubMat<Real,Integer,M+1>(HessInv, matA, N);
+
+
+    //Update the vector series weights
+    
+
+    //Update the solution vector
+
+    if(err < ltol) break;
   }
 }
 
@@ -173,7 +223,7 @@ void FGMRES(Vector<Real> u_sol
 \****************************************************/  
 template<typename Real, typename Integer, Integer M>
 void newtonKrylov(Vector<Real> u_sol
-                , function<void(const Vector<Real> U_sol, Vector<Real> Resid)> residual
+                , function<void(const Vector<Real> U_sol, Vector<Real> Resid)>  residual
                 , function<void(const Vector<Real> x_vec, Vector<Real> Mx_vec)> precon
                 , Real nltol
                 , Real ltol
@@ -185,9 +235,10 @@ void newtonKrylov(Vector<Real> u_sol
   Array<Vector<Real>*,M> v_vec
   Array<Vector<Real>*,M> z_vec
 
-  //Solve the equations
-  for(int NIters=0; NIters<NIterLim; NIters++){  
-    FGMRES<Real,Integer,50>(du, residual, ltol, LIterLim);
+  //Solve the non-linear equations
+  for(int NIters=0; NIters<NIterLim; NIters++){
+    //Approximate the jacobian inverse
+    FGMRES<Real,Integer,M>(du, residual, ltol, LIterLim);
     VecAdd(u_sol, du, 1.0, -1.0);
     InnerProd(error, du, du);
     if(nltol < error) break;
