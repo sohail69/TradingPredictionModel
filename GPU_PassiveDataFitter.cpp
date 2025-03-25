@@ -20,7 +20,7 @@
 !    4.2) Calculate coefficient shift with neighboring
 !         partitions
 !    4.3) register trend
-!    4.4) if(trend doesn't varies from previous trend) EXIT
+!    4.4) if(trend doesn't vary from previous trend) EXIT
 !  5) Output Model Coeffs
 !  6) Output Coefficient shift Distributions
 !
@@ -37,38 +37,29 @@
 \****************************************************/
 
 // Compile with
-// mpic++ -std=c++17 -O2 -o GPUMarketFitter GPU_PassiveDataFitter.cpp -fopenmp -lssl -lcrypto
-// -lOpenCL
+// mpic++ -std=c++17 -O2 -o GPUMarketFitter GPU_PassiveDataFitter.cpp -lOpenCL -lssl -lcrypto
+
 
 #include <functional>
 #include <iostream>
 #include <iomanip>
 #include <mpi.h>
-#include <omp.h>
 
 //Interface class to all necessary objects
 //and definitions
+#include "include/deviceHandler.hpp"
 #include "include/GPU_PassiveDataFitter_Dummy.hpp"
 
 using namespace std;
 
-int IteratorFunc(const int& I){ return I + 1;};
 
 int main(){
   const int I=0;
   const unsigned int N=100;
   double x_vec[N], y_vec[N], b_vec[N];
-  int num_devices = omp_get_num_devices();
-  int nthreads0 = omp_get_num_threads();
-  function<int(const int& I)> IterFuncPtr(IteratorFunc);
-  cout << setw(10) << num_devices << setw(10) << nthreads0 << endl;
 
-  #pragma omp target
-  {
-    int nteams = omp_get_num_teams();
-    int nthreads = omp_get_num_threads();
-    int J = IterFuncPtr(I);
-  }
+  DeviceHandler dhandler;
+
   return 0;
 }
 
