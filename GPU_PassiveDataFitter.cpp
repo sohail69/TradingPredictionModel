@@ -38,7 +38,7 @@
 
 // Compile with
 // mpic++ -std=c++17 -O2 -o GPUMarketFitter GPU_PassiveDataFitter.cpp -lOpenCL -lssl -lcrypto
-
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
 #include <functional>
 #include <iostream>
@@ -48,17 +48,28 @@
 //Interface class to all necessary objects
 //and definitions
 #include "include/deviceHandler.hpp"
-#include "include/GPU_PassiveDataFitter_Dummy.hpp"
+#include "include/kernelExecutor.hpp"
 
 using namespace std;
 
+struct pDstruct{
+  //model and data work
+  static const unsigned int p=15, q=15; //GARCH (p,q) model size
+  static const unsigned int nData=100;  //Size of the dataset
+  double alpha_beta[p+q];
+
+  //Newton solver parameters
+  double du[p+q], residual[p+q];
+  double Jacobian[p+q][p+q];
+};
 
 int main(){
   const int I=0;
-  const unsigned int N=100;
-  double x_vec[N], y_vec[N], b_vec[N];
+  string progName="hello.cl";
+  pDstruct pData;
 
   DeviceHandler dhandler;
+  kernelExecutor<DeviceHandler, pDstruct> kex(dhandler, progName, pData);
 
   return 0;
 }

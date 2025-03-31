@@ -21,25 +21,24 @@ class DeviceHandler
 {
   private:
     cl_int                     clErrNum;
-    cl_uint                    clDevCount, num_platforms;
+    cl_uint                    TNumCores, clDevCount, num_platforms;
     cl_platform_id             clPlatformID;
+    cl_context                 GPUContext;
     vector<cl_device_id>       DevIDs;
     map<cl_device_id,cl_uint>  DevNumCores;
-    cl_context                 GPUContext;
     vector<cl_command_queue>   Queues;
   public:
-   
+
     //Object constructor
     DeviceHandler();
 
     //Total device stats
-    cl_uint Get_Total_NCores();             //Total number of cores
-    cl_uint Get_Total_NDevs();              //Total number of devices
+    cl_uint Get_Total_NCores(); //Total number of cores
+    cl_uint Get_Total_NDevs();  //Total number of devices
 
     //Individual device stats
-    cl_device_id Get_Dev_ID(unsigned int I);   //Get the device ID
-    cl_uint Get_Dev_NCores(unsigned int I);    //Device number of cores
-    cl_uint Get_Plat_NDevs(unsigned int I);    //Get number of devices per platform
+    cl_uint Get_Dev_NCores(unsigned I);    //Gets a devices number of cores
+    cl_command_queue &GetQueue(unsigned I); //Gets a command queue
 
     //Object destructor
     ~DeviceHandler();
@@ -54,6 +53,8 @@ DeviceHandler::DeviceHandler()
   //Get the number of device platforms
   //
   clErrNum = clGetPlatformIDs(0, NULL, &num_platforms);
+  TNumCores=0;
+  clDevCount=0;
 
   if(num_platforms != 0){
     //
@@ -78,12 +79,11 @@ DeviceHandler::DeviceHandler()
     DevNumCores.clear();
     for(cl_uint J=0; J<clDevCount; J++){//Go over all devices
       cl_uint NCUs;
-     // clErrNum = clGetDeviceInfo(DevIDs_tmp[J],CL_DEVICE_MAX_WORK_ITEM_SIZES,sizeof(cl_uint),&NCUs,NULL);
-
+      clErrNum = clGetDeviceInfo(DevIDs_tmp[J],CL_DEVICE_MAX_WORK_ITEM_SIZES,sizeof(cl_uint),&NCUs,NULL);
       DevIDs.push_back(DevIDs_tmp[J]);
-     // DevNumCores[DevIDs_tmp[J]] = NCUs;
+      DevNumCores[DevIDs_tmp[J]] = NCUs;
+      TNumCores = TNumCores + NCUs;
     }
-    free(DevIDs_tmp);
 
     //
     // Build the context and
@@ -91,27 +91,54 @@ DeviceHandler::DeviceHandler()
     //
     GPUContext = clCreateContext(0, clDevCount, DevIDs_tmp, NULL, NULL, &clErrNum);
     for(cl_uint J=0; J<clDevCount; J++){//Go over all devices
-      Queues.push_back(clCreateCommandQueue(GPUContext, DevIDs[J], CL_QUEUE_PROFILING_ENABLE, &clErrNum);
+      Queues.push_back(clCreateCommandQueue(GPUContext, DevIDs[J], CL_QUEUE_PROFILING_ENABLE, &clErrNum));
     }
+    free(DevIDs_tmp);
   }
-  cout << setw(21) << "Num Platforms "  << setw(15)  << ": " << num_platforms << endl;
+  cout << setw(15)  << num_platforms << " := " << setw(25) << "Num Platforms "           << endl;
+  cout << setw(15)  << clDevCount    << " := " << setw(25) << "Num of platform devices " << endl;
+  cout << setw(15)  << TNumCores     << " := " << setw(25) << "Num of total cores "      << endl;
 }
-
-/*
-    cl_int   clErrNum, clDevCount;
-    cl_platform_id             clPlatformID;
-    vector<cl_device_id>       DevIDs;
-    map<cl_device_id,cl_uint>  DevNumCores;
-    vector<cl_command_queue>   Queues;
-*/
 
 //
 //  Object destructor
 //
 DeviceHandler::~DeviceHandler()
 {
-  DevIDs.clear();
+  if(num_platforms != 0){
+    for(int I=0; I<Queues.size(); I++) clReleaseCommandQueue(Queues[I]);
+    clReleaseContext(GPUContext);
+  }
+  Queues.clear();
   DevNumCores.clear();
+  DevIDs.clear();
 };
 
+//
+// Total number of cores
+//
+cl_uint DeviceHandler::Get_Total_NCores(){
+  return TNumCores;
+};
+
+//
+// Total number of devices
+//
+cl_uint DeviceHandler::Get_Total_NDevs(){
+  return clDevCount;
+};
+
+//
+// Device number of cores
+//
+cl_uint DeviceHandler::Get_Dev_NCores(unsigned I){
+  return  DevNumCores[DevIDs[I]];
+};
+
+//
+// Gets a command queue
+//
+cl_command_queue &DeviceHandler::GetQueue(unsigned I){
+  return  Queues[I];
+};
 #endif

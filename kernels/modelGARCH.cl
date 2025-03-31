@@ -1,28 +1,20 @@
+/****************************************************\
+!  Extra templated maths functions
+!
+!  Basic maths functions used for calculations
+!  of different things
+!
+\****************************************************/  
 
-//=====================
-//
 // Exponential function
-//
-//=====================
-float MyExp(float x){ 
-  return exp(x);
-};
+float MyExp(float x){ return exp(x); };
 
-//=====================
-//
+
 // SQRT function
-//
-//=====================
-float MySqrt(float x){
-  return sqrt(x);
-};
+float MySqrt(float x){ return sqrt(x); };
 
-//=====================
-//
-// Normal distribution
-// function
-//
-//=====================
+
+// Normal distribution function
 float NormalDist(float Val, float Mean, float Var){
   float Pi = 3.14159265359;
   N = 1.0/MySqrt(2.0*Pi*Var);
@@ -30,26 +22,36 @@ float NormalDist(float Val, float Mean, float Var){
   return N;
 }
 
-//=====================
-//
-// Iterators for I
-// and J
-//
-//=====================
-uint iteratorI(uint l, uint P){ 
-  return l/P;
-};
+// Iterators for I and J
+unsigned iteratorI(unsigned l, unsigned P){return l/P;};
 
-uint iteratorJ(uint l, uint P){
-  uint M = l/P;
+unsigned iteratorJ(unsigned l, unsigned P){
+  unsigned M = l/P;
   return (l - M*P);
 };
 
-//=====================
-//
-// Calculates the residuals
-//
-//=====================
+/****************************************************\
+!  RNG calculations
+!
+!  RNG used for random sampling
+!
+\****************************************************/  
+unsigned int _pcg6432_uint(pcg6432_state* state){
+  unsigned long int oldstate = *state;
+  *state = oldstate * 6364136223846793005UL + 0xda3e39cb94b95bdbUL;
+	uint xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
+	uint rot = oldstate >> 59u;
+	return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+}
+#define pcg6432_double(state) (pcg6432_ulong(state)*PCG6432_DOUBLE_MULTI)
+
+
+/****************************************************\
+!  GARCH calculations
+!
+!  Calculates the GARCH coefficients
+!
+\****************************************************/  
 void GARCH_calcResiduals(const uint p
                        , const uint q
                        , const float sigmat02
@@ -220,7 +222,7 @@ void PackVec(const uint M
 //
 // Uses Newtons method
 // to calculate the
-// GARH coefficients
+// GARCH coefficients
 //
 //=====================  
 __kernel void GARCH_calcCoeffs(__global const float *stockHistory

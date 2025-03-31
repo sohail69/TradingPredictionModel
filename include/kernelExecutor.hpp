@@ -25,24 +25,24 @@ using namespace std;
 !  executed and on which devices
 !
 \****************************************************/
-template<typename DeviceHandler>
+template<typename DeviceHandler, typename plDataStruct>
 class kernelExecutor{
   private:
-    DeviceHandler               *Dhandler;
-    cl_int                       ciErrNum;
-    map<unsigned int,string>     kernelNames;
-    map<unsigned int,cl_program> programs;
-    vector<cl_context>           devContexts;
-    vector<cl_command_queue>     devQueues;
+    DeviceHandler &       Dhandler;
+    plDataStruct  &       kernData;
+    cl_int                clErrNum;
+    cl_program            programs;
+    map<unsigned,string>  kernelNames;
+
   public:
+    kernelExecutor(DeviceHandler &Dhandler_, string ProgramName, plDataStruct &kernData_);
     ~kernelExecutor();
-    kernelExecutor(DeviceHandler *Dhandler_);
 
-    void addKernel(string kernelName, unsigned int Chronoglogy);
-    void setKernels();
-    void runKernels();
+    void addKernel(pair<unsigned,string> kernels);
+    void addKernels(vector<pair<unsigned,string>> kernels);
+    void prepareForExecution();
+    void runKernelsAlgorithm();
 };
-
 
 
 /****************************************************\
@@ -54,80 +54,59 @@ class kernelExecutor{
 !
 \****************************************************/
 //
-// Class destructor
-//
-template<typename DeviceHandler>
-kernelExecutor<DeviceHandler>::~kernelExecutor(){
-  devContexts.clear();
-  kernelNames.clear();
-  devContexts.clear();
-  devQueues.clear();
-};
-
-//
 // Performs a kernel execution
 // event that is prescheduled
 // and configured
 //
-template<typename DeviceHandler>
-kernelExecutor<DeviceHandler>::kernelExecutor(DeviceHandler *Dhandler_){
-  Dhandler = Dhandler_;
-  cl_uint nPlats = Dhandler->Get_Total_NPlats();
-  cl_device_id *DevIDs;
-  devContexts.clear();
-  devQueues.clear();
+template<typename DeviceHandler, typename plDataStruct>
+kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhandler_
+                                                          , string ProgramName
+                                                          , plDataStruct &kernData_):
+                                                          Dhandler(Dhandler_),
+                                                          kernData(kernData_)
+{
+  cl_uint nDevs  = Dhandler.Get_Total_NDevs();
+/*
+  // Create the compute program from the source buffer
+  program = clCreateProgramWithSource(context, 1, (const char **) & KernelSource, NULL, &clErrNum);
+  checkError(clErrNum, "Creating program");
 
-  for(cl_uint J=0; J<nPlats; J++){
-    //Create a single Device context
-    cl_uint nDevs  = Dhandler->Get_Plat_NDevs(J);
-
-    if(nDevs != 0){ 
-      DevIDs = new cl_device_id[nDevs];
-      cl_platform_id PlatID = Dhandler->Get_PlatID(J);
-
-      cl_uint K=0;
-      for(cl_uint I=0; I<nDevs; I++){
-        cl_platform_id DevPlatID = Dhandler->Get_Dev_PlatID(I);
-        if(DevPlatID==PlatID){
-          cout << setw(10) << I << setw(10) << K << endl;
-          DevIDs[K] = Dhandler->Get_Dev_ID(I);
-        }
-      }
-
-      cl_context devContext = clCreateContext(NULL, nDevs, DevIDs, NULL, NULL, &ciErrNum);
-      devContexts.push_back(devContext);
-
-      for(cl_uint I=0; I<nDevs; I++){
-        cl_command_queue_properties props;
-        cl_command_queue queue = clCreateCommandQueueWithProperties(devContext, DevIDs[I], &props, &ciErrNum);
-        devQueues.push_back(queue);
-      }
-      if(ciErrNum==CL_SUCCESS) cout << "Great Success Executor Built" << endl;
-      delete[] DevIDs;
-    }
-  }
+  // Build the program  
+  clErrNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+*/
+  if((nDevs != 0)and(clErrNum==CL_SUCCESS)) cout << "Success Executor Built" << endl;
 };
+
+//
+// Class destructor
+//
+template<typename DeviceHandler, typename plDataStruct>
+kernelExecutor<DeviceHandler, plDataStruct>::~kernelExecutor(){
+  kernelNames.clear();
+};
+
 
 //
 // Adds a kernel program and
 // its necessary chronology
 //
-template<typename DeviceHandler>
-void kernelExecutor<DeviceHandler>::addKernel(string kernelName, unsigned int Chronoglogy){
-//  if(programs[Chronoglogy] != programs.end()) throw("Error already a program in that position");
-//  programs[Chronoglogy] = build_program(devContexts[0], device, kernelName);
-    // Create the compute program from the source buffer
-    program = clCreateProgramWithSource(context, 1, (const char **) & KernelSource, NULL, &err);
-    checkError(err, "Creating program");
+template<typename DeviceHandler, typename plDataStruct>
+void kernelExecutor<DeviceHandler, plDataStruct>::addKernel(pair<unsigned,string> kernels){
 
-    // Build the program  
-    err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-    
-  ciErrNum = clBuildProgram(programs[Chronoglogy], 0, NULL, NULL, NULL, NULL);
 };
 
-template<typename DeviceHandler>
-void kernelExecutor<DeviceHandler>::setKernels(){
+//
+// Adds a set of kernel programs and
+// their necessary chronology
+//
+template<typename DeviceHandler, typename plDataStruct>
+void kernelExecutor<DeviceHandler, plDataStruct>::addKernels(vector<pair<unsigned,string>> kernels){
+
+};
+
+
+template<typename DeviceHandler, typename plDataStruct>
+void kernelExecutor<DeviceHandler, plDataStruct>::prepareForExecution(){
  /*
   cl_mem memobjs[] = {clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 2 * NUM_ENTRIES, NULL, NULL), clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * 2 * NUM_ENTRIES, NULL, NULL)};
 
@@ -143,8 +122,8 @@ void kernelExecutor<DeviceHandler>::setKernels(){
 */
 };
 
-template<typename DeviceHandler>
-void kernelExecutor<DeviceHandler>::runKernels(){
+template<typename DeviceHandler, typename plDataStruct>
+void kernelExecutor<DeviceHandler, plDataStruct>::runKernelsAlgorithm(){
   
 };
 #endif
