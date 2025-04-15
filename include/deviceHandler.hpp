@@ -1,4 +1,4 @@
-#include "OCLVersion.h"
+#include "globalMacros.hpp"
 #ifndef DEVICEHANDLER_HPP
 #define DEVICEHANDLER_HPP 
 

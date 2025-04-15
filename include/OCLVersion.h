@@ -1,4 +1,0 @@
-#ifndef OCLVERSION_H
-#define OCLVERSION_H 
-#define CL_TARGET_OPENCL_VERSION 300
-#endif

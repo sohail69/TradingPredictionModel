@@ -1,4 +1,4 @@
-#include "include/OCLVersion.h"
+#include "include/globalMacros.hpp"
 #define PROGRAM_FILE "modelGARCH.cl"
 #define KERNEL_FUNC "vecAdd"
 

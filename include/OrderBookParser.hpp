@@ -1,3 +1,4 @@
+#include "globalMacros.hpp"
 #ifndef ORDERBOOKPARSER_HPP
 #define ORDERBOOKPARSER_HPP 
 

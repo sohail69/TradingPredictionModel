@@ -1,3 +1,4 @@
+#include "globalMacros.hpp"
 #ifndef TRANSACTIONLEDGER_HPP
 #define TRANSACTIONLEDGER_HPP
 

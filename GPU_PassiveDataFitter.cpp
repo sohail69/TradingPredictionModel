@@ -38,7 +38,6 @@
 
 // Compile with
 // mpic++ -std=c++17 -O2 -o GPUMarketFitter GPU_PassiveDataFitter.cpp -lOpenCL -lssl -lcrypto
-#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
 #include <functional>
 #include <iostream>

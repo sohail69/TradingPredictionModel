@@ -1,3 +1,4 @@
+#include "include/globalMacros.hpp"
 #ifndef WEBSOCKET_HPP
 #define WEBSOCKET_HPP 
 
@@ -16,7 +17,7 @@
 #include <openssl/err.h>
 
 //Json File Parsing
-#include "JsonParser.hpp"
+#include "OrderBookParser.hpp"
 
 // Template function to connect and
 // read from a WebSocket

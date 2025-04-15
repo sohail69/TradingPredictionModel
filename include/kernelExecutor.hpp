@@ -1,4 +1,4 @@
-#include "OCLVersion.h"
+#include "globalMacros.hpp"
 #ifndef KERNELEXECUTOR_HPP
 #define KERNELEXECUTOR_HPP
 
@@ -70,6 +70,7 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
   if(nDevs != 0){
     //Construct memory buffers
     memobjs = {clCreateBuffer(Dhandler.GetContext(), CL_MEM_READ_WRITE, sizeof(plDataStruct), NULL, &clErrNum)};
+   cout << clErrNum << endl;
 
     // Create the compute program from the source buffer
     program = clCreateProgramWithSource(Dhandler.GetContext(), 1, (const char **) & ProgramName, NULL, &clErrNum);
@@ -87,8 +88,8 @@ kernelExecutor<DeviceHandler, plDataStruct>::~kernelExecutor(){
   clReleaseMemObject(memobjs);
   cl_uint nDevs  = Dhandler.Get_Total_NDevs();
   if(nDevs != 0) clReleaseProgram(program);
-
-  ////clReleaseKernel(kernel1);
+  if(nDevs != 0) for(unsigned I=0; I<kernels.size(); I++) clReleaseKernel(kernels[I]);
+  kernels.clear();
 };
 
 
@@ -138,11 +139,14 @@ void kernelExecutor<DeviceHandler, plDataStruct>::prepareForExecution(){
 //
 template<typename DeviceHandler, typename plDataStruct>
 void kernelExecutor<DeviceHandler, plDataStruct>::runKernelsAlgorithm(){
+  size_t glWorkSize = 60 * 1024;
+  size_t lWorkSize = 128;
+
   unsigned M = kernels.size();
   unsigned N = Dhandler.Get_Total_NQueues();
   for(unsigned I=0; I<M; I++){
     for(unsigned J=0; J<N; J++){
-      clEnqueueNDRangeKernel(Dhandler.GetQueue(J), kernels[I],1,NULL,&"TODO", &"TODO", 0, NULL, NULL);
+      clEnqueueNDRangeKernel(Dhandler.GetQueue(J), kernels[I],1,NULL,&glWorkSize, &lWorkSize, 0, NULL, NULL);
     }
   }
 };
