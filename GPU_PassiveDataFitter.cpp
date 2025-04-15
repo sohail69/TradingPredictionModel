@@ -38,11 +38,11 @@
 
 // Compile with
 // mpic++ -std=c++17 -O2 -o GPUMarketFitter GPU_PassiveDataFitter.cpp -lOpenCL -lssl -lcrypto
-
+// g++ -std=c++17 -O2 -o GPUMarketFitter GPU_PassiveDataFitter.cpp -lOpenCL -lssl -lcrypto -lnvidia-opencl
 #include <functional>
 #include <iostream>
 #include <iomanip>
-#include <mpi.h>
+//#include <mpi.h>
 
 //Interface class to all necessary objects
 //and definitions

@@ -62,7 +62,10 @@ DeviceHandler::DeviceHandler()
     //
     //Get the platformID and deviceIDs
     //
+    cl_platform_id* pIDs = (cl_platform_id*)malloc(num_platforms);
     clErrNum = clGetPlatformIDs (1, &clPlatformID, NULL);
+    clPlatformID = pIDs[0];
+    free(pIDs);
     clErrNum = clGetDeviceIDs(clPlatformID, CL_DEVICE_TYPE_GPU, 0, NULL, &clDevCount);
 
     //
@@ -81,10 +84,9 @@ DeviceHandler::DeviceHandler()
     DevNumCores.clear();
     for(cl_uint J=0; J<clDevCount; J++){//Go over all devices
       cl_uint NCUs;
-      clErrNum = clGetDeviceInfo(DevIDs_tmp[J],CL_DEVICE_MAX_WORK_ITEM_SIZES,sizeof(cl_uint),&NCUs,NULL);
+      clErrNum = clGetDeviceInfo(DevIDs_tmp[J],CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(size_t),&NCUs,NULL);
       DevIDs.push_back(DevIDs_tmp[J]);
       DevNumCores[DevIDs_tmp[J]] = NCUs;
-
       TNumCores = TNumCores + NCUs;
     }
 
