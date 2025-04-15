@@ -31,19 +31,20 @@ class kernelExecutor{
     DeviceHandler &       Dhandler;
     plDataStruct  &       kernData;
     cl_int                clErrNum;
-    cl_program            programs;
+    cl_program            program;
+    cl_mem                memobjs;
     map<unsigned,string>  kernelNames;
+    vector<cl_kernel>     kernels;
 
   public:
     kernelExecutor(DeviceHandler &Dhandler_, string ProgramName, plDataStruct &kernData_);
     ~kernelExecutor();
 
-    void addKernel(pair<unsigned,string> kernels);
-    void addKernels(vector<pair<unsigned,string>> kernels);
+    void addKernel(pair<unsigned,string> kernel_);
+    void addKernels(vector<pair<unsigned,string>> kernels_);
     void prepareForExecution();
     void runKernelsAlgorithm();
 };
-
 
 /****************************************************\
 !  The kernel executor Implementation:
@@ -66,15 +67,15 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
                                                           kernData(kernData_)
 {
   cl_uint nDevs  = Dhandler.Get_Total_NDevs();
-/*
-  // Create the compute program from the source buffer
-  program = clCreateProgramWithSource(context, 1, (const char **) & KernelSource, NULL, &clErrNum);
-  checkError(clErrNum, "Creating program");
+  if(nDevs != 0){
+    //Construct memory buffers
+    memobjs = {clCreateBuffer(Dhandler.GetContext(), CL_MEM_READ_WRITE, sizeof(plDataStruct), NULL, &clErrNum)};
 
-  // Build the program  
-  clErrNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-*/
-  if((nDevs != 0)and(clErrNum==CL_SUCCESS)) cout << "Success Executor Built" << endl;
+    // Create the compute program from the source buffer
+    program = clCreateProgramWithSource(Dhandler.GetContext(), 1, (const char **) & ProgramName, NULL, &clErrNum);
+    clErrNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+  }
+  if(clErrNum==CL_SUCCESS) cout << "Success Executor Built" << endl;
 };
 
 //
@@ -83,6 +84,11 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
 template<typename DeviceHandler, typename plDataStruct>
 kernelExecutor<DeviceHandler, plDataStruct>::~kernelExecutor(){
   kernelNames.clear();
+  clReleaseMemObject(memobjs);
+  cl_uint nDevs  = Dhandler.Get_Total_NDevs();
+  if(nDevs != 0) clReleaseProgram(program);
+
+  ////clReleaseKernel(kernel1);
 };
 
 
@@ -91,41 +97,71 @@ kernelExecutor<DeviceHandler, plDataStruct>::~kernelExecutor(){
 // its necessary chronology
 //
 template<typename DeviceHandler, typename plDataStruct>
-void kernelExecutor<DeviceHandler, plDataStruct>::addKernel(pair<unsigned,string> kernels){
-
+void kernelExecutor<DeviceHandler, plDataStruct>::addKernel(pair<unsigned,string> kernel_){
+  kernelNames[kernel_.first] = kernel_.second;
 };
+
 
 //
 // Adds a set of kernel programs and
 // their necessary chronology
 //
 template<typename DeviceHandler, typename plDataStruct>
-void kernelExecutor<DeviceHandler, plDataStruct>::addKernels(vector<pair<unsigned,string>> kernels){
-
+void kernelExecutor<DeviceHandler, plDataStruct>::addKernels(vector<pair<unsigned,string>> kernels_){
+  for(unsigned I=0; I<kernels.size(); I++) kernelNames[kernels_[I].first] = kernels_[I].second;
 };
 
-
+//
+// Prepares the kernels for enqueuing
+//
 template<typename DeviceHandler, typename plDataStruct>
 void kernelExecutor<DeviceHandler, plDataStruct>::prepareForExecution(){
- /*
-  cl_mem memobjs[] = {clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 2 * NUM_ENTRIES, NULL, NULL), clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * 2 * NUM_ENTRIES, NULL, NULL)};
+  if(kernels.size() != 0){ //clear existing kernels
+    for(unsigned I=0; I<kernels.size(); I++) clReleaseKernel(kernels[I]);
+    kernels.clear();
+  }
 
-  // create the compute program
-  // const char* fft1D_1024_kernel_src[1] = {  };
-  cl_program program = clCreateProgramWithSource(context, 1, (const char **)& KernelSource, NULL, NULL);
+  //Construct the kernels
+  unsigned N = kernelNames.size();
+  for(unsigned I=0; I<N; I++) 
+    kernels.push_back(clCreateKernel(program, (const char *) &  kernelNames[I],&clErrNum) );
 
-  // build the compute program executable
-  clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-
-  // create the compute kernel
-  cl_kernel kernel = clCreateKernel(program, "fft1D_1024", NULL);
-*/
+  //Add arguments for the kernels
+  for(unsigned I=0; I<N; I++)
+    clSetKernelArg(kernels[I], 0, sizeof(plDataStruct),&clErrNum);
 };
 
+//Dhandler.GetQueue(I);
+
+//
+// Enqueues the configured kernels
+//
 template<typename DeviceHandler, typename plDataStruct>
 void kernelExecutor<DeviceHandler, plDataStruct>::runKernelsAlgorithm(){
-  
+  unsigned M = kernels.size();
+  unsigned N = Dhandler.Get_Total_NQueues();
+  for(unsigned I=0; I<M; I++){
+    for(unsigned J=0; J<N; J++){
+      clEnqueueNDRangeKernel(Dhandler.GetQueue(J), kernels[I],1,NULL,&"TODO", &"TODO", 0, NULL, NULL);
+    }
+  }
 };
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

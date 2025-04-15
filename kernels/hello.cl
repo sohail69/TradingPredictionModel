@@ -1,5 +1,7 @@
 
-struct pDstruct{
+#include "../include/globalMacros.hpp"
+
+struct PACKSTRUCT pDstruct{
   //model and data work
   static const unsigned int p=15, q=15; //GARCH (p,q) model size
   static const unsigned int nData=100;  //Size of the dataset

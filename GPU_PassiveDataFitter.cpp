@@ -49,23 +49,25 @@
 //and definitions
 #include "include/deviceHandler.hpp"
 #include "include/kernelExecutor.hpp"
+#include "include/globalMacros.hpp"
 
 using namespace std;
 
-struct pDstruct{
+struct PACKSTRUCT pDstruct{
   //model and data work
   static const unsigned int p=15, q=15; //GARCH (p,q) model size
   static const unsigned int nData=100;  //Size of the dataset
+  double sigma2[nData], epsilon2[nData];
   double alpha_beta[p+q];
 
   //Newton solver parameters
   double du[p+q], residual[p+q];
-  double Jacobian[p+q][p+q];
+  double Jacobian[p+q][p+q], JacInv[p+q][p+q];
 };
 
 int main(){
   const int I=0;
-  string progName="hello.cl";
+  string progName="kernels/hello.cl";
   pDstruct pData;
 
   DeviceHandler dhandler;

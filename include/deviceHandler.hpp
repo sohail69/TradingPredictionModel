@@ -33,11 +33,13 @@ class DeviceHandler
     DeviceHandler();
 
     //Total device stats
+    cl_context &GetContext();   //Gets the context
     cl_uint Get_Total_NCores(); //Total number of cores
     cl_uint Get_Total_NDevs();  //Total number of devices
+    cl_uint Get_Total_NQueues();//Total number of device queues
 
     //Individual device stats
-    cl_uint Get_Dev_NCores(unsigned I);    //Gets a devices number of cores
+    cl_uint Get_Dev_NCores(unsigned I);     //Gets a devices number of cores
     cl_command_queue &GetQueue(unsigned I); //Gets a command queue
 
     //Object destructor
@@ -82,6 +84,7 @@ DeviceHandler::DeviceHandler()
       clErrNum = clGetDeviceInfo(DevIDs_tmp[J],CL_DEVICE_MAX_WORK_ITEM_SIZES,sizeof(cl_uint),&NCUs,NULL);
       DevIDs.push_back(DevIDs_tmp[J]);
       DevNumCores[DevIDs_tmp[J]] = NCUs;
+
       TNumCores = TNumCores + NCUs;
     }
 
@@ -98,6 +101,7 @@ DeviceHandler::DeviceHandler()
   cout << setw(15)  << num_platforms << " := " << setw(25) << "Num Platforms "           << endl;
   cout << setw(15)  << clDevCount    << " := " << setw(25) << "Num of platform devices " << endl;
   cout << setw(15)  << TNumCores     << " := " << setw(25) << "Num of total cores "      << endl;
+  if(clErrNum==CL_SUCCESS) cout << "Success Device handler Built" << endl;
 }
 
 //
@@ -136,9 +140,24 @@ cl_uint DeviceHandler::Get_Dev_NCores(unsigned I){
 };
 
 //
+// Total number of device queues
+//
+cl_uint DeviceHandler::Get_Total_NQueues(){
+  return  Queues.size();
+};
+
+
+//
 // Gets a command queue
 //
 cl_command_queue &DeviceHandler::GetQueue(unsigned I){
   return  Queues[I];
+};
+
+//
+//Gets the context
+//
+cl_context &DeviceHandler::GetContext(){
+  return GPUContext;
 };
 #endif
