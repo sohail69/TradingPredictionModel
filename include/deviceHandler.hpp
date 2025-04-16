@@ -63,7 +63,7 @@ DeviceHandler::DeviceHandler()
     //Get the platformID and deviceIDs
     //
     cl_platform_id* pIDs = (cl_platform_id*)malloc(num_platforms);
-    clErrNum = clGetPlatformIDs (1, &clPlatformID, NULL);
+    clErrNum = clGetPlatformIDs(num_platforms, pIDs, NULL);
     clPlatformID = pIDs[0];
     free(pIDs);
     clErrNum = clGetDeviceIDs(clPlatformID, CL_DEVICE_TYPE_GPU, 0, NULL, &clDevCount);

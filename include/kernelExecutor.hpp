@@ -78,6 +78,7 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
     clErrNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
   }
   if(clErrNum==CL_SUCCESS) cout << "Success executor built" << endl;
+  if(clErrNum!=CL_SUCCESS) cout << "Executor Error:  "<<  clErrNum << endl;
 };
 
 //
