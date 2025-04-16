@@ -71,7 +71,7 @@ int main(){
 
   DeviceHandler dhandler;
   kernelExecutor<DeviceHandler, pDstruct> kex(dhandler, progName, pData);
-  kex.AddKernel(make_pair(0,"helloWorld"));
+  kex.addKernel(make_pair(0,"helloWorld"));
   kex.prepareForExecution();
 //  kex.runKernelsAlgorithm();
   return 0;
