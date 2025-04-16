@@ -66,7 +66,7 @@ struct PACKSTRUCT pDstruct{
 
 int main(){
   const int I=0;
-  string progName="kernels/hello.cl";
+  string progName="hello.cl";
   pDstruct pData;
 
   DeviceHandler dhandler;

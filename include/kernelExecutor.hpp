@@ -35,7 +35,11 @@ class kernelExecutor{
     cl_mem                memobjs;
     map<unsigned,string>  kernelNames;
     vector<cl_kernel>     kernels;
+    size_t program_size;
+    char *program_buffer;
 
+
+    void readProgramFile(std::string programFName);
     void programErrLog();
   public:
     kernelExecutor(DeviceHandler &Dhandler_, string ProgramName, plDataStruct &kernData_);
@@ -74,7 +78,9 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
     if(clErrNum==CL_SUCCESS) cout << "Success buffer created" << endl;
 
     // Create the compute program from the source buffer
-    program = clCreateProgramWithSource(Dhandler.GetContext(), 1, (const char **) & ProgramName, NULL, &clErrNum);
+    readProgramFile(ProgramName);
+    program = clCreateProgramWithSource(Dhandler.GetContext(), 1, (const char**)&program_buffer
+                                      , &program_size, &clErrNum);
     if(clErrNum==CL_SUCCESS) cout << "Success program created" << endl;
     clErrNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
   }
@@ -93,6 +99,7 @@ kernelExecutor<DeviceHandler, plDataStruct>::~kernelExecutor(){
   if(nDevs != 0) clReleaseProgram(program);
   if(nDevs != 0) for(unsigned I=0; I<kernels.size(); I++) clReleaseKernel(kernels[I]);
   kernels.clear();
+  free(program_buffer);
 };
 
 
@@ -176,6 +183,26 @@ void kernelExecutor<DeviceHandler, plDataStruct>::programErrLog(){
   cout << log << endl;
   free(log);
 }
+
+//
+// Read in the program
+// file as a string/char array
+//
+template<typename DeviceHandler, typename plDataStruct>
+void kernelExecutor<DeviceHandler, plDataStruct>::readProgramFile(std::string programFName){
+   /* Read program file and place content into buffer */
+   FILE *program_handle = fopen( (const char *) & programFName, "r");
+   if(program_handle == NULL)  perror("Couldn't find the program file");
+   if(program_handle == NULL)  exit(1);
+
+   fseek(program_handle, 0, SEEK_END);
+   program_size = ftell(program_handle);
+   rewind(program_handle);
+   program_buffer = (char*)malloc(program_size + 1);
+   program_buffer[program_size] = '\0';
+   fread(program_buffer, sizeof(char), program_size, program_handle);
+   fclose(program_handle);
+};
 #endif
 
 
