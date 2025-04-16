@@ -78,7 +78,7 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
     if(clErrNum==CL_SUCCESS) cout << "Success buffer created" << endl;
 
     // Create the compute program from the source buffer
-    readProgramFile(ProgramName);
+    readProgramFile(programFName);
     program = clCreateProgramWithSource(Dhandler.GetContext(), 1, (const char**)&program_buffer
                                       , &program_size, &clErrNum);
     if(clErrNum==CL_SUCCESS) cout << "Success program created" << endl;
@@ -191,7 +191,7 @@ void kernelExecutor<DeviceHandler, plDataStruct>::programErrLog(){
 template<typename DeviceHandler, typename plDataStruct>
 void kernelExecutor<DeviceHandler, plDataStruct>::readProgramFile(const char *programFName){
    /* Read program file and place content into buffer */
-   FILE *program_handle = fopen( (const char *) & programFName, "r");
+   FILE *program_handle = fopen(programFName, "r");
    if(program_handle == NULL)  perror("Couldn't find the program file");
    if(program_handle == NULL)  exit(1);
 

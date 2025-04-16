@@ -69,6 +69,20 @@ int main(){
   const char *progName="kernels/hello.cl";
   pDstruct pData;
 
+
+ //  FILE *program_handle = fopen(progName, "r");
+//   if(program_handle == NULL)  perror("Couldn't find the program file");
+  // if(program_handle == NULL)  exit(1);
+/*
+   fseek(program_handle, 0, SEEK_END);
+   program_size = ftell(program_handle);
+   rewind(program_handle);
+   program_buffer = (char*)malloc(program_size + 1);
+   program_buffer[program_size] = '\0';
+   fread(program_buffer, sizeof(char), program_size, program_handle);
+   fclose(program_handle);*/
+
+
   DeviceHandler dhandler;
   kernelExecutor<DeviceHandler, pDstruct> kex(dhandler, progName, pData);
   kex.addKernel(make_pair(0,"helloWorld"));
