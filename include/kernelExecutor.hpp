@@ -70,13 +70,14 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
   if(nDevs != 0){
     //Construct memory buffers
     memobjs = {clCreateBuffer(Dhandler.GetContext(), CL_MEM_READ_WRITE, sizeof(plDataStruct), NULL, &clErrNum)};
-   cout << clErrNum << endl;
+    if(clErrNum==CL_SUCCESS) cout << "Success buffer created" << endl;
 
     // Create the compute program from the source buffer
     program = clCreateProgramWithSource(Dhandler.GetContext(), 1, (const char **) & ProgramName, NULL, &clErrNum);
+    if(clErrNum==CL_SUCCESS) cout << "Success program created" << endl;
     clErrNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
   }
-  if(clErrNum==CL_SUCCESS) cout << "Success Executor Built" << endl;
+  if(clErrNum==CL_SUCCESS) cout << "Success executor built" << endl;
 };
 
 //
@@ -102,7 +103,6 @@ void kernelExecutor<DeviceHandler, plDataStruct>::addKernel(pair<unsigned,string
   kernelNames[kernel_.first] = kernel_.second;
 };
 
-
 //
 // Adds a set of kernel programs and
 // their necessary chronology
@@ -124,15 +124,17 @@ void kernelExecutor<DeviceHandler, plDataStruct>::prepareForExecution(){
 
   //Construct the kernels
   unsigned N = kernelNames.size();
-  for(unsigned I=0; I<N; I++) 
+  for(unsigned I=0; I<N; I++){
     kernels.push_back(clCreateKernel(program, (const char *) &  kernelNames[I],&clErrNum) );
+    if(clErrNum==CL_SUCCESS) cout << "kernel : " << I << " built" << endl;
+  }
 
   //Add arguments for the kernels
-  for(unsigned I=0; I<N; I++)
+  for(unsigned I=0; I<N; I++){
     clSetKernelArg(kernels[I], 0, sizeof(plDataStruct),&clErrNum);
+    if(clErrNum==CL_SUCCESS) cout << "kernel arg : " << I << " added" << endl;
+  }
 };
-
-//Dhandler.GetQueue(I);
 
 //
 // Enqueues the configured kernels
