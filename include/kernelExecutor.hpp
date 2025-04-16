@@ -39,10 +39,10 @@ class kernelExecutor{
     char *program_buffer;
 
 
-    void readProgramFile(std::string programFName);
+    void readProgramFile(const char *programFName);
     void programErrLog();
   public:
-    kernelExecutor(DeviceHandler &Dhandler_, string ProgramName, plDataStruct &kernData_);
+    kernelExecutor(DeviceHandler &Dhandler_, const char *programFName, plDataStruct &kernData_);
     ~kernelExecutor();
 
     void addKernel(pair<unsigned,string> kernel_);
@@ -66,7 +66,7 @@ class kernelExecutor{
 //
 template<typename DeviceHandler, typename plDataStruct>
 kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhandler_
-                                                          , string ProgramName
+                                                          , const char *programFName
                                                           , plDataStruct &kernData_):
                                                           Dhandler(Dhandler_),
                                                           kernData(kernData_)
@@ -189,7 +189,7 @@ void kernelExecutor<DeviceHandler, plDataStruct>::programErrLog(){
 // file as a string/char array
 //
 template<typename DeviceHandler, typename plDataStruct>
-void kernelExecutor<DeviceHandler, plDataStruct>::readProgramFile(std::string programFName){
+void kernelExecutor<DeviceHandler, plDataStruct>::readProgramFile(const char *programFName){
    /* Read program file and place content into buffer */
    FILE *program_handle = fopen( (const char *) & programFName, "r");
    if(program_handle == NULL)  perror("Couldn't find the program file");
