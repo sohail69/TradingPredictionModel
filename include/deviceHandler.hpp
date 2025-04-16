@@ -39,8 +39,9 @@ class DeviceHandler
     cl_uint Get_Total_NQueues();//Total number of device queues
 
     //Individual device stats
-    cl_uint Get_Dev_NCores(unsigned I);     //Gets a devices number of cores
-    cl_command_queue &GetQueue(unsigned I); //Gets a command queue
+    cl_uint Get_Dev_NCores(unsigned I);      //Gets a devices number of cores
+    cl_device_id     &GetDevice(unsigned I); //Gets a device (for debugging)
+    cl_command_queue &GetQueue(unsigned I);  //Gets a command queue
 
     //Object destructor
     ~DeviceHandler();
@@ -155,6 +156,13 @@ cl_uint DeviceHandler::Get_Total_NQueues(){
 cl_command_queue &DeviceHandler::GetQueue(unsigned I){
   return  Queues[I];
 };
+
+//
+//Gets a device (for debugging)
+//
+cl_device_id &DeviceHandler::GetDevice(unsigned I){
+  return DevIDs[I];
+}
 
 //
 //Gets the context
