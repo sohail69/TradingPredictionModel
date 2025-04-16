@@ -36,6 +36,7 @@ class kernelExecutor{
     map<unsigned,string>  kernelNames;
     vector<cl_kernel>     kernels;
 
+    void programErrLog();
   public:
     kernelExecutor(DeviceHandler &Dhandler_, string ProgramName, plDataStruct &kernData_);
     ~kernelExecutor();
@@ -78,7 +79,7 @@ kernelExecutor<DeviceHandler, plDataStruct>::kernelExecutor(DeviceHandler &Dhand
     clErrNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
   }
   if(clErrNum==CL_SUCCESS) cout << "Success executor built" << endl;
-  if(clErrNum!=CL_SUCCESS) cout << "Executor Error:  "<<  clErrNum << endl;
+  if(clErrNum==CL_BUILD_PROGRAM_FAILURE) programErrLog();
 };
 
 //
@@ -153,6 +154,27 @@ void kernelExecutor<DeviceHandler, plDataStruct>::runKernelsAlgorithm(){
     }
   }
 };
+
+//
+// Write out the error log
+// for a failed OpenCL program
+// build
+//
+template<typename DeviceHandler, typename plDataStruct>
+void kernelExecutor<DeviceHandler, plDataStruct>::programErrLog(){
+  // Determine the size of the log
+  size_t log_size;
+  clGetProgramBuildInfo(program, NULL, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+  // Allocate memory for the log
+  char *log = (char *) malloc(log_size);
+
+  // Get the log
+  clGetProgramBuildInfo(program, NULL, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+
+  // Print the log
+  printf("%s\n", log);
+}
 #endif
 
 
